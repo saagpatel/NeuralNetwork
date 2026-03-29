@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
+export type RightPanelTab = "loss" | "confusion" | "activations";
+
 interface UIStore {
 	selectedLayerIndex: number | null;
 	architectPanelOpen: boolean;
@@ -8,7 +10,7 @@ interface UIStore {
 	darkMode: boolean;
 	snapshotEveryNBatches: number;
 	overfittingMode: boolean;
-	activationViewerOpen: boolean; // Phase 2 stub
+	rightPanelTab: RightPanelTab;
 
 	setSelectedLayer(index: number | null): void;
 	toggleArchitectPanel(): void;
@@ -16,7 +18,7 @@ interface UIStore {
 	toggleDarkMode(): void;
 	setSnapshotRate(n: number): void;
 	toggleOverfittingMode(): void;
-	toggleActivationViewer(): void; // Phase 2 stub
+	setRightPanelTab(tab: RightPanelTab): void;
 }
 
 export const useUIStore = create<UIStore>()(
@@ -28,7 +30,7 @@ export const useUIStore = create<UIStore>()(
 			darkMode: false,
 			snapshotEveryNBatches: 10,
 			overfittingMode: false,
-			activationViewerOpen: false,
+			rightPanelTab: "loss" as RightPanelTab,
 
 			setSelectedLayer(index) {
 				set({ selectedLayerIndex: index }, false, "setSelectedLayer");
@@ -70,12 +72,8 @@ export const useUIStore = create<UIStore>()(
 				);
 			},
 
-			toggleActivationViewer() {
-				set(
-					(state) => ({ activationViewerOpen: !state.activationViewerOpen }),
-					false,
-					"toggleActivationViewer",
-				);
+			setRightPanelTab(tab) {
+				set({ rightPanelTab: tab }, false, "setRightPanelTab");
 			},
 		}),
 		{ name: "ui-store" },

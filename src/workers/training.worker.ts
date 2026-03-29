@@ -2,12 +2,14 @@
 import "@tensorflow/tfjs-backend-webgpu";
 import * as tf from "@tensorflow/tfjs";
 import * as Comlink from "comlink";
+import { buildActivationModel } from "@/lib/activation-extractor";
 import { initTFBackend } from "@/lib/backend-selector";
 import { loadDataset } from "@/lib/dataset-loader";
 import { compileModel } from "@/lib/model-compiler";
 import { extractWeights } from "@/lib/weight-extractor";
 import type {
 	DatasetId,
+	LayerActivation,
 	NetworkConfig,
 	TrainingConfig,
 	TrainingUpdate,
@@ -27,6 +29,8 @@ interface TrainingWorkerAPI {
 	pause(): void;
 	resume(): void;
 	stop(): void;
+	getActivations(sampleIndex: number): Promise<LayerActivation[]>;
+	getTestSamples(n: number): Promise<{ xs: number[][][]; ys: number[] }>;
 }
 
 interface FinalMetrics {
@@ -36,8 +40,15 @@ interface FinalMetrics {
 	valAccuracy: number;
 }
 
-let isPaused = false;
-let isStopped = false;
+// Mutable training state — held in an object so linter won't convert to const
+const state = {
+	isPaused: false,
+	isStopped: false,
+	currentModel: null as tf.LayersModel | null,
+	testXsCache: null as tf.Tensor | null,
+	testYsCache: null as tf.Tensor | null,
+	activationModel: null as tf.LayersModel | null,
+};
 
 const worker: TrainingWorkerAPI = {
 	async start(
@@ -50,8 +61,8 @@ const worker: TrainingWorkerAPI = {
 		onError,
 		onLoadProgress,
 	) {
-		isPaused = false;
-		isStopped = false;
+		state.isPaused = false;
+		state.isStopped = false;
 
 		try {
 			await initTFBackend();
@@ -89,6 +100,20 @@ const worker: TrainingWorkerAPI = {
 			const ys = tf.oneHot(ysFlat, numClasses);
 			ysFlat.dispose();
 
+			// Cache test tensors for confusion matrix and activation extraction
+			const testCount = testImages.length / pixelsPerImage;
+			const xsTestRaw = tf
+				.tensor2d(testImages, [testCount, pixelsPerImage])
+				.reshape([testCount, ...inputShape]);
+			const ysTestFlatCached = tf.tensor1d(
+				Array.from(testLabels).map((v) => v),
+				"int32",
+			);
+			const ysTestCached = tf.oneHot(ysTestFlatCached, numClasses);
+			ysTestFlatCached.dispose();
+			state.testXsCache = xsTestRaw;
+			state.testYsCache = ysTestCached;
+
 			const model = compileModel(networkConfig, trainingConfig);
 
 			const batchesPerEpoch = Math.ceil(
@@ -106,14 +131,14 @@ const worker: TrainingWorkerAPI = {
 
 			// Train epoch-by-epoch so we can check pause/stop between epochs
 			for (let epoch = 0; epoch < trainingConfig.epochs; epoch++) {
-				if (isStopped) break;
+				if (state.isStopped) break;
 
 				// Wait while paused
-				while (isPaused) {
+				while (state.isPaused) {
 					await new Promise((r) => setTimeout(r, 100));
-					if (isStopped) break;
+					if (state.isStopped) break;
 				}
-				if (isStopped) break;
+				if (state.isStopped) break;
 
 				let batchCount = 0;
 
@@ -143,6 +168,38 @@ const worker: TrainingWorkerAPI = {
 						},
 						onEpochEnd: async (_epoch, logs) => {
 							const snapshots = extractWeights(model);
+
+							// Confusion matrix on test subset at epoch end
+							const subsetSize = Math.min(
+								1000,
+								state.testXsCache?.shape[0] ?? 0,
+							);
+							let confusionMatrix: number[][] | undefined;
+							if (state.testXsCache && state.testYsCache && subsetSize > 0) {
+								const numCls = state.testYsCache.shape[1] ?? numClasses;
+								const testSubX = state.testXsCache.slice([0], [subsetSize]);
+								const testSubY = state.testYsCache.slice([0], [subsetSize]);
+								const preds = model.predict(testSubX) as tf.Tensor2D;
+								const predIndices = Array.from(preds.argMax(-1).dataSync());
+								const trueIndices = Array.from(testSubY.argMax(-1).dataSync());
+								testSubX.dispose();
+								testSubY.dispose();
+								preds.dispose();
+
+								const matrix: number[][] = Array.from({ length: numCls }, () =>
+									new Array<number>(numCls).fill(0),
+								);
+								for (let idx = 0; idx < subsetSize; idx++) {
+									const t = trueIndices[idx];
+									const p = predIndices[idx];
+									if (typeof t === "number" && typeof p === "number") {
+										const row = matrix[t] as number[];
+										row[p] = (row[p] ?? 0) + 1;
+									}
+								}
+								confusionMatrix = matrix;
+							}
+
 							const update: TrainingUpdate = {
 								epoch,
 								batch: batchesPerEpoch,
@@ -154,6 +211,7 @@ const worker: TrainingWorkerAPI = {
 									logs?.["val_acc"] ?? logs?.["val_accuracy"] ?? null,
 								weightSnapshots: snapshots,
 								activationSnapshots: null,
+								confusionMatrix,
 								elapsedMs: Date.now() - startTime,
 							};
 							onUpdate(update);
@@ -169,12 +227,21 @@ const worker: TrainingWorkerAPI = {
 				});
 			}
 
+			// Store trained model and build activation model
+			state.currentModel = model;
+			try {
+				state.activationModel = buildActivationModel(model);
+			} catch {
+				// Sequential models without functional graph won't support activation extraction
+				state.activationModel = null;
+			}
+
 			// Run final evaluation on test set
-			if (!isStopped) {
-				const testCount = testImages.length / pixelsPerImage;
+			if (!state.isStopped) {
+				const testCount2 = testImages.length / pixelsPerImage;
 				const xsTest = tf
-					.tensor2d(testImages, [testCount, pixelsPerImage])
-					.reshape([testCount, ...inputShape]);
+					.tensor2d(testImages, [testCount2, pixelsPerImage])
+					.reshape([testCount2, ...inputShape]);
 				const ysTestFlat = tf.tensor1d(
 					Array.from(testLabels).map((v) => v),
 					"int32",
@@ -186,15 +253,15 @@ const worker: TrainingWorkerAPI = {
 				const evalLoss = evalResult[0].dataSync()[0];
 				const evalAcc = evalResult[1].dataSync()[0];
 
-				finalMetrics.valLoss = evalLoss;
-				finalMetrics.valAccuracy = evalAcc;
+				finalMetrics.valLoss = evalLoss ?? 0;
+				finalMetrics.valAccuracy = evalAcc ?? 0;
 
 				xsTest.dispose();
 				ysTest.dispose();
 				evalResult.forEach((t) => t.dispose());
 			}
 
-			// Cleanup
+			// Cleanup training tensors (keep test cache for post-training use)
 			xsReshaped.dispose();
 			ys.dispose();
 
@@ -206,16 +273,55 @@ const worker: TrainingWorkerAPI = {
 	},
 
 	pause() {
-		isPaused = true;
+		state.isPaused = true;
 	},
 
 	resume() {
-		isPaused = false;
+		state.isPaused = false;
 	},
 
 	stop() {
-		isStopped = true;
-		isPaused = false;
+		state.isStopped = true;
+		state.isPaused = false;
+	},
+
+	async getActivations(sampleIndex: number): Promise<LayerActivation[]> {
+		if (!state.activationModel || !state.testXsCache) return [];
+
+		const sample = state.testXsCache.slice([sampleIndex], [1]);
+		const outputs = state.activationModel.predict(sample);
+		const outputList = Array.isArray(outputs) ? outputs : [outputs];
+
+		const result: LayerActivation[] = outputList.map((tensor, i) => {
+			const layer = state.activationModel!.layers[i + 1];
+			return {
+				layerIndex: i,
+				layerName: layer?.name ?? `layer_${i}`,
+				shape: tensor.shape.slice(1) as number[],
+				data: tensor.dataSync() as Float32Array,
+			};
+		});
+
+		sample.dispose();
+		outputList.forEach((t) => t.dispose());
+
+		return result;
+	},
+
+	async getTestSamples(n: number): Promise<{ xs: number[][][]; ys: number[] }> {
+		if (!state.testXsCache || !state.testYsCache) return { xs: [], ys: [] };
+
+		const count = Math.min(n, state.testXsCache.shape[0]);
+		const xSubset = state.testXsCache.slice([0], [count]);
+		const ySubset = state.testYsCache.slice([0], [count]);
+
+		const xData = xSubset.arraySync() as number[][][];
+		const yData = Array.from(ySubset.argMax(-1).dataSync()) as number[];
+
+		xSubset.dispose();
+		ySubset.dispose();
+
+		return { xs: xData, ys: yData };
 	},
 };
 

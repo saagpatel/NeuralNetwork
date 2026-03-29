@@ -6,6 +6,36 @@ export interface ValidationError {
 	severity: "error" | "warning";
 }
 
+export function computeOutputShape(
+	layer: LayerConfig,
+	inputShape: number[],
+): number[] {
+	if (layer.type === "conv2d") {
+		const [H, W] = inputShape;
+		const { filters, kernelSize, strides, padding } = layer;
+		if (padding === "same") {
+			return [Math.ceil(H / strides), Math.ceil(W / strides), filters];
+		}
+		return [
+			Math.floor((H - kernelSize) / strides) + 1,
+			Math.floor((W - kernelSize) / strides) + 1,
+			filters,
+		];
+	}
+	if (layer.type === "maxPooling2d") {
+		const [H, W, C] = inputShape;
+		const ps = layer.poolSize;
+		return [Math.floor(H / ps), Math.floor(W / ps), C];
+	}
+	if (layer.type === "flatten") {
+		return [inputShape.reduce((a, b) => a * b, 1)];
+	}
+	if (layer.type === "dense") {
+		return [layer.units];
+	}
+	return inputShape;
+}
+
 /**
  * Validate a network architecture before compilation.
  *
@@ -51,6 +81,65 @@ export function validateArchitecture(
 				severity: "warning",
 			});
 		}
+	}
+
+	// CNN structural rules: spatial mode tracking
+	if (inputShape.length === 3 || layers.some((l) => l.type === "conv2d")) {
+		type ShapeMode = "spatial" | "flat";
+		let mode: ShapeMode = inputShape.length === 3 ? "spatial" : "flat";
+		let currentShape: number[] = [...inputShape];
+		let hasConv = false;
+
+		layers.forEach((layer, i) => {
+			if (layer.type === "conv2d") {
+				if (mode === "flat") {
+					errors.push({
+						layerIndex: i,
+						message: "Conv2D cannot follow a Flatten layer.",
+						severity: "error",
+					});
+				}
+				hasConv = true;
+				currentShape = computeOutputShape(layer, currentShape);
+			} else if (layer.type === "maxPooling2d") {
+				if (mode === "flat") {
+					errors.push({
+						layerIndex: i,
+						message: "MaxPooling2D cannot follow a Flatten layer.",
+						severity: "error",
+					});
+				} else if (!hasConv) {
+					errors.push({
+						layerIndex: i,
+						message: "MaxPooling2D should follow a Conv2D layer.",
+						severity: "warning",
+					});
+				}
+				if (mode === "spatial") {
+					const next = computeOutputShape(layer, currentShape);
+					if (next[0] < 1 || next[1] < 1) {
+						errors.push({
+							layerIndex: i,
+							message: `MaxPooling2D collapses spatial dimensions to zero (${currentShape[0]}×${currentShape[1]} → ${next[0]}×${next[1]}).`,
+							severity: "error",
+						});
+					}
+					currentShape = next;
+				}
+			} else if (layer.type === "flatten") {
+				mode = "flat";
+				currentShape = computeOutputShape(layer, currentShape);
+			} else if (layer.type === "dense") {
+				if (mode === "spatial") {
+					errors.push({
+						layerIndex: i,
+						message:
+							"Dense layer cannot follow Conv2D/MaxPooling2D without a Flatten layer.",
+						severity: "error",
+					});
+				}
+			}
+		});
 	}
 
 	// Per-layer rules

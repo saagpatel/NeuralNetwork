@@ -61,6 +61,9 @@ export function TrainingControls() {
 				valAccuracy: update.valAccuracy ?? 0,
 			});
 		}
+		if (update.confusionMatrix) {
+			store.setConfusionMatrix(update.confusionMatrix);
+		}
 	};
 
 	onCompleteRef.current = (metrics: FinalMetrics) => {

@@ -2,8 +2,11 @@
 
 import { useEffect } from "react";
 import { initTFBackend } from "@/lib/backend-selector";
+import type { RightPanelTab } from "@/stores/ui-store";
 import { useUIStore } from "@/stores/ui-store";
 import { terminateTrainingWorker } from "@/workers/training.api";
+import { ActivationViewer } from "./ActivationViewer";
+import { ConfusionMatrix } from "./ConfusionMatrix";
 import { DatasetSelector } from "./DatasetSelector";
 import { HyperparamPanel } from "./HyperparamPanel";
 import { LossCurveChart } from "./LossCurveChart";
@@ -18,6 +21,14 @@ export function PlaygroundShell() {
 	const toggleArchitectPanel = useUIStore((s) => s.toggleArchitectPanel);
 	const metricsPanelOpen = useUIStore((s) => s.metricsPanelOpen);
 	const toggleMetricsPanel = useUIStore((s) => s.toggleMetricsPanel);
+	const rightPanelTab = useUIStore((s) => s.rightPanelTab);
+	const setRightPanelTab = useUIStore((s) => s.setRightPanelTab);
+
+	const TABS: { id: RightPanelTab; label: string }[] = [
+		{ id: "loss", label: "Loss" },
+		{ id: "confusion", label: "Confusion" },
+		{ id: "activations", label: "Activations" },
+	];
 
 	// Initialize TF.js backend on mount, terminate worker on unmount
 	useEffect(() => {
@@ -145,8 +156,30 @@ export function PlaygroundShell() {
 					].join(" ")}
 				>
 					<div className="min-w-[320px] flex flex-col h-full">
-						<LossCurveChart />
-						{/* TODO Phase 2: <ConfusionMatrix /> */}
+						{/* Tab bar */}
+						<div className="flex border-b border-slate-800 flex-shrink-0">
+							{TABS.map((tab) => (
+								<button
+									key={tab.id}
+									type="button"
+									onClick={() => setRightPanelTab(tab.id)}
+									className={[
+										"px-3 py-2 text-xs transition-colors",
+										rightPanelTab === tab.id
+											? "text-slate-200 border-b-2 border-blue-500"
+											: "text-slate-500 hover:text-slate-300",
+									].join(" ")}
+								>
+									{tab.label}
+								</button>
+							))}
+						</div>
+						{/* Tab content */}
+						<div className="flex-1 overflow-hidden">
+							{rightPanelTab === "loss" && <LossCurveChart />}
+							{rightPanelTab === "confusion" && <ConfusionMatrix />}
+							{rightPanelTab === "activations" && <ActivationViewer />}
+						</div>
 					</div>
 				</aside>
 			</div>

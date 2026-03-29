@@ -110,6 +110,7 @@ function drawDenseLayerGeometry(
 function drawConvLayerGeometry(
 	ctx: CanvasRenderingContext2D,
 	layer: Extract<LayerGeometry, { type: "conv2d" | "maxPooling2d" }>,
+	weights: WeightSnapshot | undefined,
 	canvasHeight: number,
 	dpr: number,
 ) {
@@ -148,6 +149,75 @@ function drawConvLayerGeometry(
 	ctx.fillStyle = "#475569";
 	ctx.font = `${8 * dpr}px monospace`;
 	ctx.fillText(shapeLabel, cx, (canvasHeight / 2 - rectH / dpr / 2 - 8) * dpr);
+
+	// Kernel thumbnails (up to 8 filters)
+	if (weights && layer.kernelSize > 0 && layer.filters > 0) {
+		const kH = layer.kernelSize;
+		const kW = layer.kernelSize;
+		const inC = weights.shape[2] ?? 1;
+		const totalFilters = weights.shape[3] ?? layer.filters;
+		const numThumb = Math.min(layer.filters, 8);
+		const thumbLogical = Math.max(kW * 4, 14); // logical pixels
+		const thumbPx = thumbLogical * dpr;
+		const cols = 2;
+		const spacing = 3 * dpr;
+		const gridW = cols * (thumbPx + spacing) - spacing;
+		const startX = layer.x * dpr - gridW / 2;
+		const startY = (canvasHeight / 2 + 52) * dpr;
+
+		for (let f = 0; f < numThumb; f++) {
+			const col = f % cols;
+			const row = Math.floor(f / cols);
+			const tx = startX + col * (thumbPx + spacing);
+			const ty = startY + row * (thumbPx + spacing);
+
+			const imgData = ctx.createImageData(kW, kH);
+			for (let h = 0; h < kH; h++) {
+				for (let w = 0; w < kW; w++) {
+					const pixIdx = (h * kW + w) * 4;
+					if (inC === 3) {
+						// RGB: show actual color channels
+						for (let c = 0; c < 3; c++) {
+							const wIdx =
+								h * kW * inC * totalFilters +
+								w * inC * totalFilters +
+								c * totalFilters +
+								f;
+							imgData.data[pixIdx + c] = Math.round(
+								(((weights.weights[wIdx] ?? 0) + 1) / 2) * 255,
+							);
+						}
+						imgData.data[pixIdx + 3] = 255;
+					} else {
+						// Grayscale: mean across channels
+						let val = 0;
+						for (let c = 0; c < inC; c++) {
+							const wIdx =
+								h * kW * inC * totalFilters +
+								w * inC * totalFilters +
+								c * totalFilters +
+								f;
+							val += weights.weights[wIdx] ?? 0;
+						}
+						val /= inC;
+						const pixel = Math.round(((val + 1) / 2) * 255);
+						imgData.data[pixIdx] = pixel;
+						imgData.data[pixIdx + 1] = pixel;
+						imgData.data[pixIdx + 2] = pixel;
+						imgData.data[pixIdx + 3] = 255;
+					}
+				}
+			}
+
+			const offscreen = new OffscreenCanvas(kW, kH);
+			const octx = offscreen.getContext("2d");
+			if (octx) {
+				octx.putImageData(imgData, 0, 0);
+				ctx.imageSmoothingEnabled = false;
+				ctx.drawImage(offscreen as OffscreenCanvas, tx, ty, thumbPx, thumbPx);
+			}
+		}
+	}
 }
 
 function drawEdges(
@@ -236,9 +306,11 @@ function drawNetwork(
 	// Draw nodes
 	for (const layer of layers) {
 		if (layer.type === "conv2d" || layer.type === "maxPooling2d") {
+			const convWeights = weightByLayer.get(layer.layerIndex);
 			drawConvLayerGeometry(
 				ctx,
 				layer as Extract<LayerGeometry, { type: "conv2d" | "maxPooling2d" }>,
+				convWeights,
 				canvasHeight,
 				dpr,
 			);

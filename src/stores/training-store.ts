@@ -26,6 +26,7 @@ interface TrainingStore {
 	totalBatches: number;
 	metricsHistory: MetricsHistoryPoint[];
 	latestWeights: WeightSnapshot[];
+	latestConfusionMatrix: number[][] | null;
 	errorMessage: string | null;
 	datasetId: DatasetId;
 	trainingConfig: TrainingConfig;
@@ -35,6 +36,7 @@ interface TrainingStore {
 	setProgress(epoch: number, batch: number, totalBatches: number): void;
 	appendMetrics(point: MetricsHistoryPoint): void;
 	setWeights(snapshots: WeightSnapshot[]): void;
+	setConfusionMatrix(matrix: number[][]): void;
 	setDataset(id: DatasetId): void;
 	setError(message: string): void;
 	updateTrainingConfig(update: Partial<TrainingConfig>): void;
@@ -49,6 +51,7 @@ const INITIAL_STATE = {
 	totalBatches: 0,
 	metricsHistory: [] as MetricsHistoryPoint[],
 	latestWeights: [] as WeightSnapshot[],
+	latestConfusionMatrix: null as number[][] | null,
 	errorMessage: null,
 	datasetId: DEFAULT_DATASET_ID as DatasetId,
 	trainingConfig: DEFAULT_TRAINING_CONFIG,
@@ -84,6 +87,10 @@ export const useTrainingStore = create<TrainingStore>()(
 				set({ latestWeights: snapshots }, false, "setWeights");
 			},
 
+			setConfusionMatrix(matrix) {
+				set({ latestConfusionMatrix: matrix }, false, "setConfusionMatrix");
+			},
+
 			setDataset(id) {
 				set({ datasetId: id }, false, "setDataset");
 			},
@@ -115,6 +122,7 @@ export const useTrainingStore = create<TrainingStore>()(
 						totalBatches: 0,
 						metricsHistory: [],
 						latestWeights: [],
+						latestConfusionMatrix: null,
 						errorMessage: null,
 					},
 					false,

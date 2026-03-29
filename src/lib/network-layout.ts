@@ -1,3 +1,4 @@
+import { computeOutputShape } from "@/lib/architecture-validator";
 import type { LayerConfig } from "@/types";
 
 // ─── Geometry types ──────────────────────────────────────────────────────────
@@ -19,15 +20,23 @@ export interface DenseLayerGeometry {
 	label: string; // e.g. "Dense · 128 ReLU"
 }
 
-// Phase 2: CNN layers render as stacked feature-map rectangles, not circles.
-// `featureMaps` is null in Phase 1 — Phase 2 fills it in.
+export interface FeatureMapGeometry {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	filterIndex: number;
+}
+
 export interface ConvLayerGeometry {
 	type: "conv2d" | "maxPooling2d";
 	layerIndex: number;
 	x: number;
 	width: number;
-	featureMaps: null; // Phase 2: FeatureMapGeometry[]
+	featureMaps: FeatureMapGeometry[] | null;
 	outputShape: number[]; // e.g. [26, 26, 32]
+	kernelSize: number; // 0 for maxPooling2d
+	filters: number; // 0 for maxPooling2d
 	label: string; // e.g. "Conv2D · 32 filters 3×3"
 }
 
@@ -125,6 +134,7 @@ export function computeNetworkLayout(
 	const colWidth = (canvasWidth - COLUMN_PADDING * 2) / totalCols;
 
 	const resultLayers: LayerGeometry[] = [];
+	let currentInputShape = [...inputShape];
 
 	for (let col = 0; col < entries.length; col++) {
 		const entry = entries[col];
@@ -155,43 +165,42 @@ export function computeNetworkLayout(
 		const { config, index } = entry;
 
 		if (config.type === "conv2d") {
-			// Phase 1: placeholder rectangle geometry (featureMaps filled in Phase 2)
-			const outH = Math.floor((inputShape[0] ?? 28) / config.strides);
-			const outW = Math.floor((inputShape[1] ?? 28) / config.strides);
+			const outputShape = computeOutputShape(config, currentInputShape);
 			resultLayers.push({
 				type: "conv2d",
 				layerIndex: index,
 				x: cx,
 				width,
 				featureMaps: null,
-				outputShape: [outH, outW, config.filters],
+				outputShape,
+				kernelSize: config.kernelSize,
+				filters: config.filters,
 				label: convLabel(config.filters, config.kernelSize, config.activation),
 			});
+			currentInputShape = outputShape;
 			continue;
 		}
 
 		if (config.type === "maxPooling2d") {
-			const prevConv = resultLayers[resultLayers.length - 1];
-			const prevShape =
-				prevConv && prevConv.type === "conv2d"
-					? prevConv.outputShape
-					: [14, 14, 1];
-			const outH = Math.floor(prevShape[0] / config.strides);
-			const outW = Math.floor(prevShape[1] / config.strides);
+			const outputShape = computeOutputShape(config, currentInputShape);
 			resultLayers.push({
 				type: "maxPooling2d",
 				layerIndex: index,
 				x: cx,
 				width,
 				featureMaps: null,
-				outputShape: [outH, outW, prevShape[2]],
+				outputShape,
+				kernelSize: 0,
+				filters: 0,
 				label: poolLabel(config.poolSize),
 			});
+			currentInputShape = outputShape;
 			continue;
 		}
 
 		if (config.type === "flatten") {
-			const totalCount = 1; // flatten just acts as a transition marker
+			const flatShape = computeOutputShape(config, currentInputShape);
+			const totalCount = flatShape[0] ?? 1;
 			resultLayers.push({
 				type: "flatten",
 				layerIndex: index,
@@ -202,6 +211,7 @@ export function computeNetworkLayout(
 				totalCount,
 				label: "Flatten",
 			});
+			currentInputShape = flatShape;
 			continue;
 		}
 

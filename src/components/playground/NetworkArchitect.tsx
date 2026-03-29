@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Slider } from "@/components/ui/Slider";
-import { PRESETS } from "@/constants/presets";
+import { PRESET_MAP, PRESETS } from "@/constants/presets";
 import { validateArchitecture } from "@/lib/architecture-validator";
 import { useArchitectureStore } from "@/stores/architecture-store";
 import { useTrainingStore } from "@/stores/training-store";
@@ -38,18 +38,58 @@ const LAYER_TYPE_LABELS: Record<string, string> = {
 	dropout: "Dropout",
 };
 
-function computeParamCount(layers: LayerConfig[]): number {
-	let prevUnits = 0;
-	// Estimate input units from flatten position
+/**
+ * Compute per-layer param counts, tracking spatial shape through Conv2D/Pool layers.
+ * Returns the total trainable parameter count for the entire architecture.
+ */
+function computeParamCount(
+	layers: LayerConfig[],
+	inputShape: number[],
+): number {
+	// currentShape tracks the active spatial/channel shape as we walk layers.
+	// inputShape is e.g. [28,28,1] for MNIST or [32,32,3] for CIFAR-10.
+	let currentShape: number[] = [...inputShape];
 	let total = 0;
+
 	for (const layer of layers) {
-		if (layer.type === "flatten") {
-			prevUnits = 784; // default MNIST — approximate
+		if (layer.type === "conv2d") {
+			const inputChannels = currentShape[currentShape.length - 1] ?? 1;
+			// params = kernelH * kernelW * inputChannels * filters + filters (bias)
+			total +=
+				layer.kernelSize * layer.kernelSize * inputChannels * layer.filters +
+				layer.filters;
+
+			// Update spatial shape after conv (approximate — ignores valid padding shrink for counting)
+			const h = currentShape[0] ?? 1;
+			const w = currentShape[1] ?? 1;
+			if (layer.padding === "same") {
+				const newH = Math.ceil(h / layer.strides);
+				const newW = Math.ceil(w / layer.strides);
+				currentShape = [newH, newW, layer.filters];
+			} else {
+				// valid padding: output = floor((input - kernel) / stride) + 1
+				const newH = Math.floor((h - layer.kernelSize) / layer.strides) + 1;
+				const newW = Math.floor((w - layer.kernelSize) / layer.strides) + 1;
+				currentShape = [newH, newW, layer.filters];
+			}
+		} else if (layer.type === "maxPooling2d") {
+			const h = currentShape[0] ?? 1;
+			const w = currentShape[1] ?? 1;
+			const c = currentShape[2] ?? 1;
+			const stride = layer.strides;
+			currentShape = [Math.floor(h / stride), Math.floor(w / stride), c];
+			// MaxPooling has no learnable params
+		} else if (layer.type === "flatten") {
+			const flatSize = currentShape.reduce((acc, d) => acc * d, 1);
+			currentShape = [flatSize];
 		} else if (layer.type === "dense") {
+			const prevUnits = currentShape[0] ?? 0;
 			total += prevUnits * layer.units + layer.units;
-			prevUnits = layer.units;
+			currentShape = [layer.units];
 		}
+		// dropout: no params, no shape change
 	}
+
 	return total;
 }
 
@@ -60,6 +100,7 @@ export function NetworkArchitect() {
 	const removeLayer = useArchitectureStore((s) => s.removeLayer);
 	const updateLayer = useArchitectureStore((s) => s.updateLayer);
 	const loadPreset = useArchitectureStore((s) => s.loadPreset);
+	const setInputShape = useArchitectureStore((s) => s.setInputShape);
 	const status = useTrainingStore((s) => s.status);
 
 	const [addMenuOpen, setAddMenuOpen] = useState(false);
@@ -81,7 +122,7 @@ export function NetworkArchitect() {
 	}
 	const warnings = validationErrors.filter((e) => e.severity === "warning");
 
-	const totalParams = computeParamCount(layers);
+	const totalParams = computeParamCount(layers, inputShape);
 
 	function handleAddLayer(type: LayerConfig["type"]) {
 		setAddMenuOpen(false);
@@ -91,6 +132,17 @@ export function NetworkArchitect() {
 			addLayer({ type: "flatten" });
 		} else if (type === "dropout") {
 			addLayer({ type: "dropout", rate: 0.25 });
+		} else if (type === "conv2d") {
+			addLayer({
+				type: "conv2d",
+				filters: 32,
+				kernelSize: 3,
+				strides: 1,
+				padding: "same",
+				activation: "relu",
+			});
+		} else if (type === "maxPooling2d") {
+			addLayer({ type: "maxPooling2d", poolSize: 2, strides: 2 });
 		}
 	}
 
@@ -106,7 +158,12 @@ export function NetworkArchitect() {
 						...PRESETS.map((p) => ({ value: p.id, label: p.name })),
 					]}
 					onChange={(id) => {
-						if (id) loadPreset(id);
+						if (!id) return;
+						loadPreset(id);
+						const preset = PRESET_MAP[id];
+						if (preset?.inputShape) {
+							setInputShape(preset.inputShape);
+						}
 					}}
 					disabled={isTraining}
 				/>
@@ -214,10 +271,97 @@ export function NetworkArchitect() {
 								/>
 							)}
 
-							{/* Flatten / Conv / Pool: no config in Phase 1 */}
-							{(layer.type === "flatten" ||
-								layer.type === "conv2d" ||
-								layer.type === "maxPooling2d") && (
+							{/* Conv2D config */}
+							{layer.type === "conv2d" && (
+								<div className="flex flex-col gap-1.5">
+									<Slider
+										label="Filters"
+										min={8}
+										max={128}
+										step={8}
+										value={layer.filters}
+										onChange={(v) =>
+											updateLayer(i, { ...layer, filters: Math.round(v) })
+										}
+										disabled={isTraining}
+									/>
+									<Select
+										label="Kernel"
+										value={String(layer.kernelSize) as "3" | "5" | "7"}
+										options={[
+											{ value: "3", label: "3×3" },
+											{ value: "5", label: "5×5" },
+											{ value: "7", label: "7×7" },
+										]}
+										onChange={(v) =>
+											updateLayer(i, { ...layer, kernelSize: Number(v) })
+										}
+										disabled={isTraining}
+									/>
+									<Select
+										label="Stride"
+										value={String(layer.strides) as "1" | "2"}
+										options={[
+											{ value: "1", label: "1" },
+											{ value: "2", label: "2" },
+										]}
+										onChange={(v) =>
+											updateLayer(i, { ...layer, strides: Number(v) })
+										}
+										disabled={isTraining}
+									/>
+									<Select
+										label="Padding"
+										value={layer.padding}
+										options={[
+											{ value: "same", label: "same" },
+											{ value: "valid", label: "valid" },
+										]}
+										onChange={(v) =>
+											updateLayer(i, {
+												...layer,
+												padding: v as "same" | "valid",
+											})
+										}
+										disabled={isTraining}
+									/>
+									<Select
+										label="Activation"
+										value={layer.activation}
+										options={ACTIVATION_OPTIONS}
+										disabled={isTraining}
+										onChange={(v) =>
+											updateLayer(i, {
+												...layer,
+												activation: v as ActivationFn,
+											})
+										}
+									/>
+								</div>
+							)}
+
+							{/* MaxPooling2D config */}
+							{layer.type === "maxPooling2d" && (
+								<Select
+									label="Pool size"
+									value={String(layer.poolSize) as "2" | "3"}
+									options={[
+										{ value: "2", label: "2×2" },
+										{ value: "3", label: "3×3" },
+									]}
+									onChange={(v) =>
+										updateLayer(i, {
+											...layer,
+											poolSize: Number(v),
+											strides: Number(v),
+										})
+									}
+									disabled={isTraining}
+								/>
+							)}
+
+							{/* Flatten: no config */}
+							{layer.type === "flatten" && (
 								<p className="text-[10px] text-slate-500">No config</p>
 							)}
 
@@ -249,34 +393,19 @@ export function NetworkArchitect() {
 				{addMenuOpen && (
 					<div className="absolute top-full left-0 right-0 mt-1 rounded border border-slate-700 bg-slate-900 z-10 overflow-hidden">
 						{[
-							{ type: "dense" as const, label: "Dense", phase2: false },
-							{ type: "flatten" as const, label: "Flatten", phase2: false },
-							{ type: "dropout" as const, label: "Dropout", phase2: false },
-							{ type: "conv2d" as const, label: "Conv2D", phase2: true },
-							{
-								type: "maxPooling2d" as const,
-								label: "MaxPooling2D",
-								phase2: true,
-							},
-						].map(({ type, label, phase2: disabled }) => (
+							{ type: "dense" as const, label: "Dense" },
+							{ type: "flatten" as const, label: "Flatten" },
+							{ type: "dropout" as const, label: "Dropout" },
+							{ type: "conv2d" as const, label: "Conv2D" },
+							{ type: "maxPooling2d" as const, label: "MaxPooling2D" },
+						].map(({ type, label }) => (
 							<button
 								key={type}
 								type="button"
-								disabled={disabled}
 								onClick={() => handleAddLayer(type)}
-								className={[
-									"w-full text-left px-3 py-1.5 text-xs transition-colors",
-									disabled
-										? "text-slate-600 cursor-not-allowed"
-										: "text-slate-300 hover:bg-slate-800",
-								].join(" ")}
+								className="w-full text-left px-3 py-1.5 text-xs transition-colors text-slate-300 hover:bg-slate-800"
 							>
 								{label}
-								{disabled ? (
-									<span className="ml-1 text-[10px] text-slate-600">
-										Phase 2
-									</span>
-								) : null}
 							</button>
 						))}
 					</div>

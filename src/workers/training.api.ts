@@ -1,6 +1,7 @@
 import * as Comlink from "comlink";
 import type {
 	DatasetId,
+	LayerActivation,
 	NetworkConfig,
 	TrainingConfig,
 	TrainingUpdate,
@@ -27,6 +28,8 @@ export interface TrainingWorkerAPI {
 	pause(): Promise<void>;
 	resume(): Promise<void>;
 	stop(): Promise<void>;
+	getActivations(sampleIndex: number): Promise<LayerActivation[]>;
+	getTestSamples(n: number): Promise<{ xs: number[][][]; ys: number[] }>;
 }
 
 let _worker: Worker | null = null;

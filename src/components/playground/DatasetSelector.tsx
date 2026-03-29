@@ -7,9 +7,6 @@ import type { DatasetId } from "@/types";
 
 const DATASET_IDS: DatasetId[] = ["mnist", "fashion-mnist", "cifar10"];
 
-// CIFAR-10 is Phase 2 — shown but disabled
-const PHASE_2_DATASETS: Set<DatasetId> = new Set(["cifar10"]);
-
 export function DatasetSelector() {
 	const datasetId = useTrainingStore((s) => s.datasetId);
 	const status = useTrainingStore((s) => s.status);
@@ -20,7 +17,7 @@ export function DatasetSelector() {
 	const isTraining = status === "training" || status === "loading";
 
 	function handleSelect(id: DatasetId) {
-		if (isTraining || PHASE_2_DATASETS.has(id)) return;
+		if (isTraining) return;
 		const meta = DATASETS[id];
 		setDataset(id);
 		setInputShape(meta.inputShape);
@@ -35,8 +32,7 @@ export function DatasetSelector() {
 				{DATASET_IDS.map((id) => {
 					const meta = DATASETS[id];
 					const isSelected = datasetId === id;
-					const isPhase2 = PHASE_2_DATASETS.has(id);
-					const disabled = isTraining || isPhase2;
+					const disabled = isTraining;
 
 					return (
 						<button
@@ -46,7 +42,7 @@ export function DatasetSelector() {
 							onClick={() => handleSelect(id)}
 							className={[
 								"w-full text-left px-3 py-2 rounded border transition-colors",
-								isSelected && !isPhase2
+								isSelected
 									? "border-blue-500 bg-blue-500/10"
 									: "border-slate-700 bg-slate-900 hover:border-slate-500",
 								disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
@@ -59,11 +55,6 @@ export function DatasetSelector() {
 									{meta.name}
 								</span>
 								<div className="flex gap-1 items-center">
-									{isPhase2 && (
-										<span className="text-[10px] px-1 py-0.5 rounded bg-slate-700 text-slate-400">
-											Phase 2
-										</span>
-									)}
 									<span className="text-[10px] text-slate-500">
 										{meta.downloadSizeMB} MB
 									</span>
