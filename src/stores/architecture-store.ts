@@ -12,6 +12,7 @@ interface ArchitectureStore {
 	updateLayer(index: number, update: Partial<LayerConfig>): void;
 	loadPreset(presetId: string): void;
 	setInputShape(shape: number[]): void;
+	setLayers(layers: LayerConfig[]): void;
 }
 
 export const useArchitectureStore = create<ArchitectureStore>()(
@@ -67,6 +68,10 @@ export const useArchitectureStore = create<ArchitectureStore>()(
 
 			setInputShape(shape) {
 				set({ inputShape: shape }, false, "setInputShape");
+			},
+
+			setLayers(layers) {
+				set({ layers }, false, "setLayers");
 			},
 		}),
 		{ name: "architecture-store" },

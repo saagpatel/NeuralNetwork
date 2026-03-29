@@ -23,6 +23,9 @@ importers:
       idb-keyval:
         specifier: ^6.2.1
         version: 6.2.2
+      lz-string:
+        specifier: 1.5.0
+        version: 1.5.0
       next:
         specifier: 14.2.29
         version: 14.2.29(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -42,6 +45,9 @@ importers:
       '@types/d3':
         specifier: ^7.4.3
         version: 7.4.3
+      '@types/lz-string':
+        specifier: 1.5.0
+        version: 1.5.0
       '@types/node':
         specifier: ^20.17.57
         version: 20.19.37
@@ -823,6 +829,10 @@ packages:
 
   '@types/long@4.0.2':
     resolution: {integrity: sha512-MqTGEo5bj5t157U6fA/BiDynNkn0YknVdh48CMPkTSpFTVmvao5UQmm7uEF6xBEo7qIMAlY/JSleYaE6VOdpaA==}
+
+  '@types/lz-string@1.5.0':
+    resolution: {integrity: sha512-s84fKOrzqqNCAPljhVyC5TjAo6BH4jKHw9NRNFNiRUY5QSgZCmVm5XILlWbisiKl+0OcS7eWihmKGS5akc2iQw==}
+    deprecated: This is a stub types definition. lz-string provides its own type definitions, so you do not need this installed.
 
   '@types/node-fetch@2.6.13':
     resolution: {integrity: sha512-QGpRVpzSaUs30JBSGPjOg4Uveu384erbHBoT1zeONvyCfwQxIkUshLAOqN/k9EjGviPRmWTTe6aH2qySWKTVSw==}
@@ -3692,6 +3702,10 @@ snapshots:
   '@types/json5@0.0.29': {}
 
   '@types/long@4.0.2': {}
+
+  '@types/lz-string@1.5.0':
+    dependencies:
+      lz-string: 1.5.0
 
   '@types/node-fetch@2.6.13':
     dependencies:

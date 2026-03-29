@@ -11,6 +11,8 @@ interface UIStore {
 	snapshotEveryNBatches: number;
 	overfittingMode: boolean;
 	rightPanelTab: RightPanelTab;
+	activeTutorialId: string | null;
+	tutorialStep: number;
 
 	setSelectedLayer(index: number | null): void;
 	toggleArchitectPanel(): void;
@@ -19,6 +21,8 @@ interface UIStore {
 	setSnapshotRate(n: number): void;
 	toggleOverfittingMode(): void;
 	setRightPanelTab(tab: RightPanelTab): void;
+	setActiveTutorial(id: string | null): void;
+	setTutorialStep(step: number): void;
 }
 
 export const useUIStore = create<UIStore>()(
@@ -27,10 +31,12 @@ export const useUIStore = create<UIStore>()(
 			selectedLayerIndex: null,
 			architectPanelOpen: true,
 			metricsPanelOpen: true,
-			darkMode: false,
+			darkMode: true,
 			snapshotEveryNBatches: 10,
 			overfittingMode: false,
 			rightPanelTab: "loss" as RightPanelTab,
+			activeTutorialId: null as string | null,
+			tutorialStep: 0,
 
 			setSelectedLayer(index) {
 				set({ selectedLayerIndex: index }, false, "setSelectedLayer");
@@ -54,7 +60,13 @@ export const useUIStore = create<UIStore>()(
 
 			toggleDarkMode() {
 				set(
-					(state) => ({ darkMode: !state.darkMode }),
+					(state) => {
+						const next = !state.darkMode;
+						if (typeof window !== "undefined") {
+							localStorage.setItem("darkMode", String(next));
+						}
+						return { darkMode: next };
+					},
 					false,
 					"toggleDarkMode",
 				);
@@ -74,6 +86,18 @@ export const useUIStore = create<UIStore>()(
 
 			setRightPanelTab(tab) {
 				set({ rightPanelTab: tab }, false, "setRightPanelTab");
+			},
+
+			setActiveTutorial(id) {
+				set(
+					{ activeTutorialId: id, tutorialStep: 0 },
+					false,
+					"setActiveTutorial",
+				);
+			},
+
+			setTutorialStep(step) {
+				set({ tutorialStep: step }, false, "setTutorialStep");
 			},
 		}),
 		{ name: "ui-store" },

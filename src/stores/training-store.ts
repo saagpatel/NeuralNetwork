@@ -38,6 +38,8 @@ interface TrainingStore {
 	setWeights(snapshots: WeightSnapshot[]): void;
 	setConfusionMatrix(matrix: number[][]): void;
 	setDataset(id: DatasetId): void;
+	setDatasetId(datasetId: DatasetId): void;
+	setTrainingConfig(trainingConfig: TrainingConfig): void;
 	setError(message: string): void;
 	updateTrainingConfig(update: Partial<TrainingConfig>): void;
 	setDatasetLoadProgress(progress: number): void;
@@ -93,6 +95,14 @@ export const useTrainingStore = create<TrainingStore>()(
 
 			setDataset(id) {
 				set({ datasetId: id }, false, "setDataset");
+			},
+
+			setDatasetId(datasetId) {
+				set({ datasetId }, false, "setDatasetId");
+			},
+
+			setTrainingConfig(trainingConfig) {
+				set({ trainingConfig }, false, "setTrainingConfig");
 			},
 
 			setError(message) {

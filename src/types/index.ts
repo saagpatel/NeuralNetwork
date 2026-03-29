@@ -210,3 +210,20 @@ export interface NetworkPreset {
 	recommendedDataset: DatasetId;
 	inputShape?: number[]; // set architecture store inputShape on preset load
 }
+
+// === Tutorials ===
+
+export interface TutorialStep {
+	title: string;
+	body: string;
+	presetId?: string;
+	switchTab?: "loss" | "confusion" | "activations";
+	enableOverfitting?: boolean;
+}
+
+export interface Tutorial {
+	id: string;
+	title: string;
+	description: string;
+	steps: TutorialStep[];
+}

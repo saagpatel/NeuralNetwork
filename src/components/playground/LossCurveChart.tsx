@@ -1,6 +1,5 @@
 "use client";
 
-import * as d3 from "d3";
 import { useEffect, useRef } from "react";
 import { useTrainingStore } from "@/stores/training-store";
 import { useUIStore } from "@/stores/ui-store";
@@ -8,12 +7,13 @@ import type { MetricsHistoryPoint } from "@/types";
 
 const MARGIN = { top: 20, right: 50, bottom: 36, left: 44 };
 
-function renderChart(
+async function renderChart(
 	container: HTMLDivElement,
 	data: MetricsHistoryPoint[],
 	totalEpochs: number,
 	overfittingMode: boolean,
 ) {
+	const d3 = await import("d3");
 	const { width, height } = container.getBoundingClientRect();
 	if (width === 0 || height === 0) return;
 
@@ -378,7 +378,7 @@ export function LossCurveChart() {
 
 	useEffect(() => {
 		if (!containerRef.current) return;
-		renderChart(
+		void renderChart(
 			containerRef.current,
 			metricsHistory,
 			totalEpochs,

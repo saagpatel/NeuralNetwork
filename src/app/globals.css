@@ -40,3 +40,23 @@ body {
 	background: #334155;
 	border-radius: 2px;
 }
+
+:root {
+	--bg-primary: #f8fafc;
+	--bg-secondary: #f1f5f9;
+	--bg-card: #ffffff;
+	--border: #e2e8f0;
+	--text-primary: #0f172a;
+	--text-secondary: #475569;
+	--text-muted: #94a3b8;
+}
+
+.dark {
+	--bg-primary: #020617;
+	--bg-secondary: #0f172a;
+	--bg-card: #1e293b;
+	--border: #1e293b;
+	--text-primary: #f1f5f9;
+	--text-secondary: #94a3b8;
+	--text-muted: #475569;
+}
