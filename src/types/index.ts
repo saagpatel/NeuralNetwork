@@ -74,6 +74,7 @@ export interface TrainingConfig {
 	validationSplit: number; // 0.0 - 1.0
 	regularization: RegularizationType;
 	regularizationRate: number;
+	maxTrainSamples?: number; // overfitting demo: limits training set size
 }
 
 export interface WeightSnapshot {

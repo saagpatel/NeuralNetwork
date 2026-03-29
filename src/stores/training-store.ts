@@ -29,6 +29,7 @@ interface TrainingStore {
 	errorMessage: string | null;
 	datasetId: DatasetId;
 	trainingConfig: TrainingConfig;
+	datasetLoadProgress: number; // 0–1, updated during dataset download
 
 	setStatus(status: TrainingStatus): void;
 	setProgress(epoch: number, batch: number, totalBatches: number): void;
@@ -37,6 +38,7 @@ interface TrainingStore {
 	setDataset(id: DatasetId): void;
 	setError(message: string): void;
 	updateTrainingConfig(update: Partial<TrainingConfig>): void;
+	setDatasetLoadProgress(progress: number): void;
 	reset(): void;
 }
 
@@ -50,6 +52,7 @@ const INITIAL_STATE = {
 	errorMessage: null,
 	datasetId: DEFAULT_DATASET_ID as DatasetId,
 	trainingConfig: DEFAULT_TRAINING_CONFIG,
+	datasetLoadProgress: 0,
 };
 
 export const useTrainingStore = create<TrainingStore>()(
@@ -97,6 +100,10 @@ export const useTrainingStore = create<TrainingStore>()(
 					false,
 					"updateTrainingConfig",
 				);
+			},
+
+			setDatasetLoadProgress(progress) {
+				set({ datasetLoadProgress: progress }, false, "setDatasetLoadProgress");
 			},
 
 			reset() {

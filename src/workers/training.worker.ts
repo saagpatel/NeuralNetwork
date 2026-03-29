@@ -22,6 +22,7 @@ interface TrainingWorkerAPI {
 		onUpdate: (update: TrainingUpdate) => void,
 		onComplete: (finalMetrics: FinalMetrics) => void,
 		onError: (message: string) => void,
+		onLoadProgress: (progress: number) => void,
 	): Promise<void>;
 	pause(): void;
 	resume(): void;
@@ -47,6 +48,7 @@ const worker: TrainingWorkerAPI = {
 		onUpdate,
 		onComplete,
 		onError,
+		onLoadProgress,
 	) {
 		isPaused = false;
 		isStopped = false;
@@ -54,29 +56,26 @@ const worker: TrainingWorkerAPI = {
 		try {
 			await initTFBackend();
 
-			// Load dataset
-			const dataset = await loadDataset(datasetId, (stage, progress) => {
-				// Post a synthetic update to signal loading progress
-				onUpdate({
-					epoch: 0,
-					batch: 0,
-					totalBatches: 0,
-					trainLoss: 0,
-					trainAccuracy: 0,
-					valLoss: null,
-					valAccuracy: null,
-					weightSnapshots: [],
-					activationSnapshots: null,
-					elapsedMs: 0,
-				});
-				void stage;
-				void progress;
+			// Load dataset — report download progress via onLoadProgress
+			const dataset = await loadDataset(datasetId, (_stage, progress) => {
+				onLoadProgress(progress);
 			});
 
-			const { trainImages, trainLabels, testImages, testLabels, meta } =
-				dataset;
-			const { inputShape, numClasses, trainSize } = meta;
+			const { testImages, testLabels, meta } = dataset;
+			let { trainImages, trainLabels } = dataset;
+			const { inputShape, numClasses } = meta;
 			const pixelsPerImage = inputShape.reduce((a, b) => a * b, 1);
+
+			// Overfitting demo: slice training set if maxTrainSamples is set
+			let trainSize = meta.trainSize;
+			if (
+				trainingConfig.maxTrainSamples !== undefined &&
+				trainingConfig.maxTrainSamples < trainSize
+			) {
+				trainSize = trainingConfig.maxTrainSamples;
+				trainImages = trainImages.slice(0, trainSize * pixelsPerImage);
+				trainLabels = trainLabels.slice(0, trainSize);
+			}
 
 			// Convert to tensors and one-hot encode labels
 			const xs = tf.tensor2d(trainImages, [trainSize, pixelsPerImage]);
