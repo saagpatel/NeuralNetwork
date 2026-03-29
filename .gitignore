@@ -29,3 +29,6 @@ tsconfig.tsbuildinfo
 # OS
 .DS_Store
 Thumbs.db
+
+# Large dataset binaries (run scripts/prepare-cifar10.js to generate)
+public/datasets/cifar10/*.bin
