@@ -1,80 +1,53 @@
 # Neural Network Playground
 
-An interactive, in-browser neural network playground where you architect custom networks (dense + CNN layers), train them on real visual datasets, and watch weights, activations, loss curves, and confusion matrices update in real time. Zero backend — all training runs client-side via TensorFlow.js.
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript)](#) [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](#)
+
+> Architect, train, and visualize neural networks live in your browser — no backend required.
+
+An interactive, in-browser neural network playground where you build custom networks (dense + CNN layers), train them on real visual datasets, and watch weights, activations, loss curves, and confusion matrices update in real time. All training runs client-side via TensorFlow.js — zero backend, zero setup.
 
 **Live demo:** https://neural-network-playground.vercel.app
 
----
-
 ## Features
 
-- Build dense and convolutional networks layer-by-layer
-- Train on MNIST, Fashion-MNIST, and CIFAR-10 (datasets cached in IndexedDB)
-- Real-time weight heatmaps rendered on Canvas 2D during training
-- Loss/accuracy curves (D3.js), confusion matrix, and per-layer activation viewer
-- Overfitting demo mode — watch train loss diverge from val loss live
-- Guided tutorials: "What is a Neuron?", "Why Overfitting Happens", "How CNNs See Images"
-- URL sharing — encode full network config + dataset into a hash link
-- Dark/light mode with localStorage persistence
-- WebGPU → WebGL → WASM backend fallback for broadest browser support
+- **Layer-by-layer network builder** — add dense and convolutional layers with configurable parameters
+- **Three real datasets** — MNIST, Fashion-MNIST, and CIFAR-10 (cached in IndexedDB after first load)
+- **Real-time weight heatmaps** — Canvas 2D renders weight distributions during training without blocking the UI
+- **Loss/accuracy curves** — D3.js charts plus confusion matrix and per-layer activation viewer
+- **Overfitting demo mode** — watch train loss diverge from validation loss live
+- **URL sharing** — encode full network config + dataset into a compressed hash link
+- **Guided tutorials** — "What is a Neuron?", "Why Overfitting Happens", "How CNNs See Images"
 
----
+## Quick Start
 
-## Running Locally
+### Prerequisites
+- Node.js 18+, pnpm
 
+### Installation
 ```bash
 pnpm install
-pnpm dev
 ```
 
-Open http://localhost:3000.
-
-### CIFAR-10 Data Prep
-
-CIFAR-10 requires converting the binary batch files to a single `.bin` before serving:
-
+### Usage
 ```bash
-node scripts/prepare-cifar10.js
+pnpm dev
+# Open http://localhost:3000
 ```
-
-Download the CIFAR-10 binary format from https://www.cs.toronto.edu/~kriz/cifar.html, place the batch files in `data/cifar-10-batches-bin/`, then run the script. Output goes to `public/datasets/cifar10/`.
-
----
 
 ## Tech Stack
 
-| Layer | Library |
-|-------|---------|
+| Layer | Technology |
+|-------|------------|
 | Framework | Next.js 14 (App Router, static export) |
-| ML Runtime | TensorFlow.js 4.x + WebGPU backend |
-| Training execution | Web Worker + Comlink (keeps main thread free) |
-| Network graph | Canvas 2D (weight heatmaps at interactive frame rates) |
-| Metrics charts | D3.js 7.x (lazy-loaded) |
+| ML runtime | TensorFlow.js 4.x + WebGPU backend |
+| Training execution | Web Worker + Comlink |
+| Network graph | Canvas 2D (weight heatmaps) |
+| Charts | D3.js 7.x |
 | State | Zustand 4.x |
 | Dataset caching | IndexedDB via idb-keyval |
 | URL sharing | LZ-string (compressed hash params) |
 | Styling | Tailwind CSS 3.x |
 
----
-
-## Architecture
-
-```
-src/
-  app/              Next.js app router
-  components/
-    playground/     PlaygroundShell + all panel components
-  constants/        Presets, tutorials, dataset metadata, defaults
-  lib/              Backend selector, model compiler, dataset loader, URL state
-  stores/           Zustand stores (architecture, training, UI)
-  types/            Shared TypeScript types
-  workers/          Training Web Worker + Comlink API
-```
-
-Training runs entirely in a Web Worker. The main thread receives weight snapshots and metrics via structured-clone messages and renders them on Canvas 2D without blocking the UI.
-
----
-
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT
