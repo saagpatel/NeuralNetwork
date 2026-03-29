@@ -114,6 +114,46 @@ async function fetchBinary(
 }
 
 /**
+ * Parse raw CIFAR-10 binary data (official binary format).
+ * Each record: 1 label byte + 3072 pixel bytes in CHW order (R×1024, G×1024, B×1024).
+ * Returns xs in HWC layout normalized to [0, 1], ys as one-hot float32.
+ */
+export function parseCifar10Batches(
+	buffer: ArrayBuffer,
+	numClasses: number,
+): { xs: Float32Array; ys: Float32Array; count: number } {
+	const bytes = new Uint8Array(buffer);
+	const RECORD_SIZE = 3073; // 1 label + 32×32×3 pixels
+	const count = Math.floor(bytes.length / RECORD_SIZE);
+
+	const xs = new Float32Array(count * 32 * 32 * 3);
+	const ys = new Float32Array(count * numClasses);
+
+	for (let i = 0; i < count; i++) {
+		const offset = i * RECORD_SIZE;
+		const label = bytes[offset];
+
+		// CHW → HWC transposition
+		for (let h = 0; h < 32; h++) {
+			for (let w = 0; w < 32; w++) {
+				for (let c = 0; c < 3; c++) {
+					const srcIdx = offset + 1 + c * 1024 + h * 32 + w;
+					const dstIdx = i * 32 * 32 * 3 + h * 32 * 3 + w * 3 + c;
+					xs[dstIdx] = (bytes[srcIdx] ?? 0) / 255;
+				}
+			}
+		}
+
+		// One-hot encode label
+		if (label !== undefined && label < numClasses) {
+			ys[i * numClasses + label] = 1;
+		}
+	}
+
+	return { xs, ys, count };
+}
+
+/**
  * Load a dataset by ID. Checks IndexedDB cache first.
  * Downloads, parses, and caches on first call.
  */
@@ -135,7 +175,61 @@ export async function loadDataset(
 		};
 	}
 
-	// Determine URL pattern based on dataset
+	// CIFAR-10 uses a single combined binary file per split (not IDX format)
+	if (id === "cifar10") {
+		const trainUrl = meta.trainUrl;
+		const testUrl = meta.testUrl;
+		if (!trainUrl || !testUrl) {
+			throw new Error("CIFAR-10 meta is missing trainUrl/testUrl");
+		}
+
+		onProgress?.("Downloading CIFAR-10 train data...", 0);
+		const trainResponse = await fetch(trainUrl);
+		if (!trainResponse.ok) {
+			onProgress?.("Error: CIFAR-10 data files not found", 0);
+			throw new Error(
+				"CIFAR-10 data files not found. Run: node scripts/prepare-cifar10.js",
+			);
+		}
+		const trainBuf = await trainResponse.arrayBuffer();
+		onProgress?.("Downloading CIFAR-10 test data...", 0.5);
+
+		const testResponse = await fetch(testUrl);
+		if (!testResponse.ok) {
+			onProgress?.("Error: CIFAR-10 data files not found", 0.5);
+			throw new Error(
+				"CIFAR-10 data files not found. Run: node scripts/prepare-cifar10.js",
+			);
+		}
+		const testBuf = await testResponse.arrayBuffer();
+
+		onProgress?.("Processing...", 0.97);
+		const { xs: trainImages, ys: trainOneHot } = parseCifar10Batches(
+			trainBuf,
+			meta.numClasses,
+		);
+		const { xs: testImages, ys: testOneHot } = parseCifar10Batches(
+			testBuf,
+			meta.numClasses,
+		);
+
+		// Convert one-hot back to label indices for the Uint8Array API
+		const trainLabels = oneHotToLabels(trainOneHot, meta.numClasses);
+		const testLabels = oneHotToLabels(testOneHot, meta.numClasses);
+
+		const toCache: CachedDataset = {
+			trainImages: (trainImages.buffer as ArrayBuffer).slice(0),
+			trainLabels: (trainLabels.buffer as ArrayBuffer).slice(0),
+			testImages: (testImages.buffer as ArrayBuffer).slice(0),
+			testLabels: (testLabels.buffer as ArrayBuffer).slice(0),
+		};
+		await set(idbKey(id), toCache);
+
+		onProgress?.("Ready", 1);
+		return { trainImages, trainLabels, testImages, testLabels, meta };
+	}
+
+	// Determine URL pattern based on dataset (IDX format: MNIST / Fashion-MNIST)
 	const urls = getDatasetUrls(meta);
 
 	// Fetch all 4 files
@@ -173,6 +267,27 @@ export async function loadDataset(
 
 	onProgress?.("Ready", 1);
 	return { trainImages, trainLabels, testImages, testLabels, meta };
+}
+
+/**
+ * Convert a one-hot Float32Array to a flat Uint8Array of label indices.
+ */
+function oneHotToLabels(oneHot: Float32Array, numClasses: number): Uint8Array {
+	const count = oneHot.length / numClasses;
+	const labels = new Uint8Array(count);
+	for (let i = 0; i < count; i++) {
+		let maxVal = -1;
+		let maxIdx = 0;
+		for (let c = 0; c < numClasses; c++) {
+			const v = oneHot[i * numClasses + c] ?? 0;
+			if (v > maxVal) {
+				maxVal = v;
+				maxIdx = c;
+			}
+		}
+		labels[i] = maxIdx;
+	}
+	return labels;
 }
 
 interface DatasetUrls {

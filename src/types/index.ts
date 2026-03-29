@@ -74,6 +74,7 @@ export interface TrainingConfig {
 	validationSplit: number; // 0.0 - 1.0
 	regularization: RegularizationType;
 	regularizationRate: number;
+	maxTrainSamples?: number; // overfitting demo: limits training set size
 }
 
 export interface WeightSnapshot {
@@ -101,7 +102,15 @@ export interface TrainingUpdate {
 	valAccuracy: number | null;
 	weightSnapshots: WeightSnapshot[];
 	activationSnapshots: ActivationSnapshot[] | null; // optional, every N epochs
+	confusionMatrix?: number[][]; // 10×10, present only at epoch-end
 	elapsedMs: number;
+}
+
+export interface LayerActivation {
+	layerIndex: number;
+	layerName: string;
+	shape: number[]; // e.g. [26, 26, 32] for conv, [128] for dense
+	data: Float32Array; // flattened activations
 }
 
 // === Worker Messages ===
@@ -161,6 +170,8 @@ export interface DatasetMeta {
 	downloadSizeMB: number;
 	classLabels: string[];
 	baseUrl: string; // base URL for fetching IDX files
+	trainUrl?: string; // overrides baseUrl for combined-format datasets (CIFAR-10)
+	testUrl?: string;
 }
 
 // === Visualization ===
@@ -197,4 +208,22 @@ export interface NetworkPreset {
 	description: string;
 	layers: LayerConfig[];
 	recommendedDataset: DatasetId;
+	inputShape?: number[]; // set architecture store inputShape on preset load
+}
+
+// === Tutorials ===
+
+export interface TutorialStep {
+	title: string;
+	body: string;
+	presetId?: string;
+	switchTab?: "loss" | "confusion" | "activations";
+	enableOverfitting?: boolean;
+}
+
+export interface Tutorial {
+	id: string;
+	title: string;
+	description: string;
+	steps: TutorialStep[];
 }

@@ -4,7 +4,21 @@ import "./globals.css";
 export const metadata: Metadata = {
 	title: "Neural Network Playground",
 	description:
-		"Interactive in-browser neural network training on real image datasets. Build, train, and visualize custom networks on MNIST, Fashion-MNIST, and CIFAR-10.",
+		"Train CNNs and dense networks in your browser. Watch weights, activations, and loss update in real time.",
+	openGraph: {
+		title: "Neural Network Playground",
+		description: "Train CNNs and dense networks in your browser.",
+		url: "https://neural-network-playground.vercel.app",
+		siteName: "Neural Network Playground",
+		images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+		type: "website",
+	},
+	twitter: {
+		card: "summary_large_image",
+		title: "Neural Network Playground",
+		description: "Train CNNs and dense networks in your browser.",
+		images: ["/og-image.png"],
+	},
 };
 
 export default function RootLayout({

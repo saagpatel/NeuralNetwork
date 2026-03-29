@@ -26,17 +26,23 @@ interface TrainingStore {
 	totalBatches: number;
 	metricsHistory: MetricsHistoryPoint[];
 	latestWeights: WeightSnapshot[];
+	latestConfusionMatrix: number[][] | null;
 	errorMessage: string | null;
 	datasetId: DatasetId;
 	trainingConfig: TrainingConfig;
+	datasetLoadProgress: number; // 0–1, updated during dataset download
 
 	setStatus(status: TrainingStatus): void;
 	setProgress(epoch: number, batch: number, totalBatches: number): void;
 	appendMetrics(point: MetricsHistoryPoint): void;
 	setWeights(snapshots: WeightSnapshot[]): void;
+	setConfusionMatrix(matrix: number[][]): void;
 	setDataset(id: DatasetId): void;
+	setDatasetId(datasetId: DatasetId): void;
+	setTrainingConfig(trainingConfig: TrainingConfig): void;
 	setError(message: string): void;
 	updateTrainingConfig(update: Partial<TrainingConfig>): void;
+	setDatasetLoadProgress(progress: number): void;
 	reset(): void;
 }
 
@@ -47,9 +53,11 @@ const INITIAL_STATE = {
 	totalBatches: 0,
 	metricsHistory: [] as MetricsHistoryPoint[],
 	latestWeights: [] as WeightSnapshot[],
+	latestConfusionMatrix: null as number[][] | null,
 	errorMessage: null,
 	datasetId: DEFAULT_DATASET_ID as DatasetId,
 	trainingConfig: DEFAULT_TRAINING_CONFIG,
+	datasetLoadProgress: 0,
 };
 
 export const useTrainingStore = create<TrainingStore>()(
@@ -81,8 +89,20 @@ export const useTrainingStore = create<TrainingStore>()(
 				set({ latestWeights: snapshots }, false, "setWeights");
 			},
 
+			setConfusionMatrix(matrix) {
+				set({ latestConfusionMatrix: matrix }, false, "setConfusionMatrix");
+			},
+
 			setDataset(id) {
 				set({ datasetId: id }, false, "setDataset");
+			},
+
+			setDatasetId(datasetId) {
+				set({ datasetId }, false, "setDatasetId");
+			},
+
+			setTrainingConfig(trainingConfig) {
+				set({ trainingConfig }, false, "setTrainingConfig");
 			},
 
 			setError(message) {
@@ -99,6 +119,10 @@ export const useTrainingStore = create<TrainingStore>()(
 				);
 			},
 
+			setDatasetLoadProgress(progress) {
+				set({ datasetLoadProgress: progress }, false, "setDatasetLoadProgress");
+			},
+
 			reset() {
 				set(
 					{
@@ -108,6 +132,7 @@ export const useTrainingStore = create<TrainingStore>()(
 						totalBatches: 0,
 						metricsHistory: [],
 						latestWeights: [],
+						latestConfusionMatrix: null,
 						errorMessage: null,
 					},
 					false,
