@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-	metadataBase: new URL("https://neural-network-playground.vercel.app"),
+	metadataBase: new URL("https://neural-network-playground-delta.vercel.app"),
 	title: "Neural Network Playground",
 	description:
 		"Train CNNs and dense networks in your browser. Watch weights, activations, and loss update in real time.",
 	openGraph: {
 		title: "Neural Network Playground",
 		description: "Train CNNs and dense networks in your browser.",
-		url: "https://neural-network-playground.vercel.app",
+		url: "https://neural-network-playground-delta.vercel.app",
 		siteName: "Neural Network Playground",
 		images: [{ url: "/og-image.png", width: 1200, height: 630 }],
 		type: "website",
