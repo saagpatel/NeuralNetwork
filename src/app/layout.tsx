@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+	metadataBase: new URL("https://neural-network-playground.vercel.app"),
 	title: "Neural Network Playground",
 	description:
 		"Train CNNs and dense networks in your browser. Watch weights, activations, and loss update in real time.",
