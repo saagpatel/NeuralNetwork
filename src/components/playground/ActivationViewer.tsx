@@ -178,7 +178,7 @@ function DenseActivationBar({ activations }: { activations: Float32Array }) {
 				/>
 			))}
 			{activations.length > MAX_NEURONS && (
-				<span className="text-[8px] text-slate-600 self-center ml-1">
+				<span className="text-[8px] text-slate-400 self-center ml-1">
 					+{activations.length - MAX_NEURONS}
 				</span>
 			)}
@@ -214,7 +214,7 @@ function OutputProbabilities({
 							}}
 						/>
 					</div>
-					<span className="text-[9px] text-slate-500 w-8 text-right">
+					<span className="text-[9px] text-slate-300 w-8 text-right">
 						{(v * 100).toFixed(0)}%
 					</span>
 				</div>
@@ -251,7 +251,7 @@ function ConvActivationMaps({ activation }: { activation: LayerActivation }) {
 				/>
 			))}
 			{C > numMaps && (
-				<span className="text-[9px] text-slate-600 self-center">
+				<span className="text-[9px] text-slate-400 self-center">
 					+{C - numMaps} more
 				</span>
 			)}
@@ -356,7 +356,7 @@ export function ActivationViewer() {
 					</p>
 				</div>
 				<div className="flex-1 flex items-center justify-center">
-					<p className="text-xs text-slate-500 text-center px-4">
+					<p className="text-xs text-slate-400 text-center px-4">
 						{status === "training" || status === "paused"
 							? "Activations available after training completes"
 							: "Train a model to inspect activations"}
@@ -378,7 +378,7 @@ export function ActivationViewer() {
 				{/* Sample thumbnails */}
 				{samples ? (
 					<div>
-						<p className="text-[9px] text-slate-500 uppercase tracking-wider mb-1.5">
+						<p className="text-[9px] text-slate-400 uppercase tracking-wider mb-1.5">
 							Test Samples — click to inspect
 						</p>
 						<div className="grid grid-cols-5 gap-1">
@@ -399,7 +399,7 @@ export function ActivationViewer() {
 					</div>
 				) : (
 					<div className="flex items-center justify-center py-4">
-						<span className="text-[10px] text-slate-500">
+						<span className="text-[10px] text-slate-400">
 							{loading ? "Loading samples…" : "No samples"}
 						</span>
 					</div>
@@ -408,7 +408,7 @@ export function ActivationViewer() {
 				{/* Per-layer activations */}
 				{activations && activations.length > 0 && (
 					<div className="space-y-2">
-						<p className="text-[9px] text-slate-500 uppercase tracking-wider">
+						<p className="text-[9px] text-slate-400 uppercase tracking-wider">
 							Layer Activations
 						</p>
 						{activations.map((act, i) => {
@@ -416,11 +416,9 @@ export function ActivationViewer() {
 
 							return (
 								<div key={i} className="bg-slate-900 rounded p-2">
-									<p className="text-[9px] text-slate-500 mb-1.5 flex items-center gap-1">
-										<span className="text-slate-400 font-medium">
-											{act.layerName}
-										</span>
-										<span className="text-slate-700">·</span>
+									<p className="text-[9px] text-slate-400 mb-1.5 flex items-center gap-1">
+										<span className="font-medium">{act.layerName}</span>
+										<span className="text-slate-500">·</span>
 										<span>{act.shape.join("×")}</span>
 									</p>
 									{act.shape.length === 3 ? (

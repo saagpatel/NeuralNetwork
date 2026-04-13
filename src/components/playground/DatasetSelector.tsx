@@ -55,12 +55,12 @@ export function DatasetSelector() {
 									{meta.name}
 								</span>
 								<div className="flex gap-1 items-center">
-									<span className="text-[10px] text-slate-500">
+									<span className="text-[10px] text-slate-400">
 										{meta.downloadSizeMB} MB
 									</span>
 								</div>
 							</div>
-							<p className="text-[10px] text-slate-500 mt-0.5 leading-tight">
+							<p className="text-[10px] text-slate-400 mt-0.5 leading-tight">
 								{meta.inputShape.join("×")} · {meta.numClasses} classes ·{" "}
 								{(meta.trainSize / 1000).toFixed(0)}k train
 							</p>
@@ -72,7 +72,7 @@ export function DatasetSelector() {
 			{/* Dataset load progress bar */}
 			{status === "loading" && loadProgress > 0 && loadProgress < 1 && (
 				<div className="mt-2">
-					<div className="flex justify-between text-[10px] text-slate-500 mb-1">
+					<div className="flex justify-between text-[10px] text-slate-400 mb-1">
 						<span>Downloading dataset…</span>
 						<span>{Math.round(loadProgress * 100)}%</span>
 					</div>

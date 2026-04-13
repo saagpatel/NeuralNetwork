@@ -205,7 +205,7 @@ export function ConfusionMatrix() {
 							/>
 						))}
 					</div>
-					<p className="text-xs text-slate-500 text-center">
+					<p className="text-xs text-slate-400 text-center">
 						Train to see confusion matrix
 					</p>
 				</div>

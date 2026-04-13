@@ -58,13 +58,13 @@ export function TutorialOverlay() {
 					{tutorial.title}
 				</span>
 				<div className="flex items-center gap-3">
-					<span className="text-[10px] text-slate-500">
+					<span className="text-[10px] text-slate-400">
 						{tutorialStep + 1}/{tutorial.steps.length}
 					</span>
 					<button
 						type="button"
 						onClick={() => setActiveTutorial(null)}
-						className="text-slate-500 hover:text-slate-300 transition-colors"
+						className="text-slate-400 hover:text-slate-200 transition-colors"
 					>
 						<svg
 							width="14"
@@ -91,7 +91,7 @@ export function TutorialOverlay() {
 					type="button"
 					onClick={() => setTutorialStep(tutorialStep - 1)}
 					disabled={tutorialStep === 0}
-					className="text-xs text-slate-500 hover:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+					className="text-xs text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
 				>
 					Back
 				</button>
