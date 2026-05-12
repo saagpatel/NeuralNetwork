@@ -45,3 +45,54 @@ npm run start      # preview static export
 - CIFAR-10 dataset files must be downloaded separately (gitignored due to binary size)
 - Input layer uses compressed representation — not all 784 MNIST neurons rendered individually
 - WebGPU backend availability varies by browser/OS; falls back to WebGL automatically
+
+<!-- portfolio-context:start -->
+# Portfolio Context
+
+## What This Project Is
+
+NeuralNetwork is an active local project in the /Users/d/Projects portfolio.
+
+## Current State
+
+Phase 3 complete — all planned phases shipped:
+- Phase 0: TF.js infrastructure, Web Worker, Zustand stores, core types
+- Phase 1: Full playground UI — network canvas, D3 charts, training controls
+- Phase 2: CNN support, CIFAR-10 dataset, confusion matrix, activation viewer
+- Phase 3: URL sharing of network configs, guided tutorials, deployment prep, README overhaul
+
+Deployed as static Next.js export. CIFAR-10 binary datasets excluded from git (gitignored).
+
+## Stack
+
+- **Next.js**: 14+ (App Router, static export)
+- **React**: 18+ (hooks-only, concurrent rendering)
+- **TypeScript**: 5.x (strict mode, no `any`)
+- **TensorFlow.js**: 4.x (`@tensorflow/tfjs` + `@tensorflow/tfjs-backend-webgpu`)
+- **Zustand**: 4.x (state management)
+- **D3.js**: 7.x (loss curves, accuracy plots — charts only)
+- **Canvas 2D**: network graph + weight heatmaps (performance-critical, not SVG)
+- **Comlink**: 4.x (typed Web Worker RPC)
+- **idb-keyval**: 6.x (IndexedDB dataset caching)
+- **Tailwind CSS**: 3.x
+
+## How To Run
+
+```bash
+npm install
+npm run dev        # development server
+npm run build      # static export
+npm run start      # preview static export
+```
+
+## Known Risks
+
+- CIFAR-10 dataset files must be downloaded separately (gitignored due to binary size)
+- Input layer uses compressed representation — not all 784 MNIST neurons rendered individually
+- WebGPU backend availability varies by browser/OS; falls back to WebGL automatically
+
+## Next Recommended Move
+
+Use this context plus the README and supporting docs to resume the next active task, then promote the repo beyond minimum-viable by capturing a dedicated handoff, roadmap, or discovery artifact.
+
+<!-- portfolio-context:end -->
