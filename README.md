@@ -7,7 +7,7 @@ Neural Network Playground is a fully client-side, zero-backend environment for b
 ![Neural Network Playground](public/og-image.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Built with Next.js](https://img.shields.io/badge/Built%20with-Next.js%2014-black)](https://nextjs.org)
+[![Built with Next.js](https://img.shields.io/badge/Built%20with-Next.js%2015-black)](https://nextjs.org)
 [![TensorFlow.js](https://img.shields.io/badge/ML-TensorFlow.js%204.x-orange)](https://www.tensorflow.org/js)
 
 ---
@@ -95,7 +95,7 @@ Everything runs in your browser. There is no server, no API, no account.
 | **Dataset caching** | IndexedDB via idb-keyval — downloads once, loads instantly forever |
 | **URL sharing** | LZ-string compression into `#config=` hash — server never sees it |
 | **Charts** | D3.js, lazy-loaded — excluded from initial bundle |
-| **Architecture** | Next.js 14 static export — deploys to any CDN with zero config |
+| **Architecture** | Next.js 15 static export — deploys to any CDN with zero config |
 
 ---
 
@@ -103,10 +103,10 @@ Everything runs in your browser. There is no server, no API, no account.
 
 ```bash
 # Install dependencies
-pnpm install
+npm install   # or: pnpm install
 
 # Start dev server
-pnpm dev
+npm run dev   # or: pnpm dev
 ```
 
 Open http://localhost:3000. MNIST and Fashion-MNIST work immediately. For CIFAR-10:
@@ -120,7 +120,7 @@ This downloads the CIFAR-10 binary format from the University of Toronto (~162 M
 ### Building for production
 
 ```bash
-pnpm build
+npm run build   # or: pnpm build
 ```
 
 Outputs a fully static site to `out/`. Deploy to Vercel, Netlify, GitHub Pages, or any static host.
@@ -159,7 +159,7 @@ src/
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 14 (App Router, static export) |
+| Framework | Next.js 15 (App Router, static export) |
 | Language | TypeScript 5.x (strict mode) |
 | ML runtime | TensorFlow.js 4.x |
 | ML acceleration | WebGPU (fallback: WebGL → WASM) |
