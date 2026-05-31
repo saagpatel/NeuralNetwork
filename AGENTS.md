@@ -3,8 +3,8 @@
 ## Communication Contract
 
 - Follow `/Users/d/.codex/policies/communication/BigPictureReportingV1.md` for user-facing updates.
-- Keep default updates beginner-friendly, big-picture, and low-noise.
-- Keep technical receipts in internal notes unless the user asks for details or a failure needs escalation.
+- Keep ordinary in-flight updates conversational, warm, PM-readable, operator-grade, and low-noise.
+- Keep technical details in internal artifacts unless explicitly requested by the user or required by failure, risk, or verification.
 
 ## Project Goal
 
