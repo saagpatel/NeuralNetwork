@@ -2,9 +2,8 @@
 
 ## Communication Contract
 
-- Follow `/Users/d/.codex/policies/communication/BigPictureReportingV1.md` for user-facing updates.
-- Keep ordinary in-flight updates conversational, warm, PM-readable, operator-grade, and low-noise.
-- Keep technical details in internal artifacts unless explicitly requested by the user or required by failure, risk, or verification.
+- Inherit the global Codex communication contract from `/Users/d/.codex/AGENTS.md`.
+- Keep this file focused on NeuralNetwork-specific product, safety, and verification rules.
 
 ## Project Goal
 
