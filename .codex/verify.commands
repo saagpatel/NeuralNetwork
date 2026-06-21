@@ -1,4 +1,4 @@
 # codex-os-managed
-npm ci
-npm test
-npm run build
+pnpm install --frozen-lockfile
+pnpm test
+pnpm build
