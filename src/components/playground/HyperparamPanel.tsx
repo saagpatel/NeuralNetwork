@@ -73,13 +73,17 @@ export function HyperparamPanel() {
 				/>
 
 				<div className="flex flex-col gap-1">
-					<span className="text-xs text-slate-400">Epochs</span>
+					<label htmlFor="hyperparam-epochs" className="text-xs text-slate-400">
+						Epochs
+					</label>
 					<input
+						id="hyperparam-epochs"
 						type="number"
 						min={1}
 						max={200}
 						value={config.epochs}
 						disabled={disabled}
+						aria-label="Epochs"
 						onChange={(e) => {
 							const val = parseInt(e.target.value, 10);
 							if (!isNaN(val) && val >= 1 && val <= 200) {

@@ -237,7 +237,7 @@ export function TrainingControls() {
 						style={{ width: `${batchProgress * 100}%` }}
 					/>
 				</div>
-				<span className="text-[10px] text-slate-500 font-mono whitespace-nowrap">
+				<span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
 					{currentBatch}/{totalBatches}
 				</span>
 			</div>
@@ -254,7 +254,7 @@ export function TrainingControls() {
 						"px-2 py-1 rounded text-xs border transition-colors",
 						overfittingMode
 							? "border-orange-500 bg-orange-500/15 text-orange-300"
-							: "border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-400",
+							: "border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200",
 						status === "training" || status === "loading"
 							? "opacity-40 cursor-not-allowed"
 							: "",

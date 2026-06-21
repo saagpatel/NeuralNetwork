@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 interface SelectOption<T extends string> {
 	value: T;
 	label: string;
@@ -19,12 +21,20 @@ export function Select<T extends string>({
 	onChange,
 	disabled = false,
 }: SelectProps<T>) {
+	const id = useId();
+
 	return (
 		<div className="flex flex-col gap-1">
-			{label && <span className="text-xs text-slate-400">{label}</span>}
+			{label && (
+				<label htmlFor={id} className="text-xs text-slate-400">
+					{label}
+				</label>
+			)}
 			<select
+				id={id}
 				value={value}
 				disabled={disabled}
+				aria-label={label}
 				onChange={(e) => onChange(e.target.value as T)}
 				className={[
 					"w-full px-2 py-1.5 rounded bg-slate-800 border border-slate-700",

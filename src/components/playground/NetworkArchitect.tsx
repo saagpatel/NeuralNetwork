@@ -220,7 +220,7 @@ export function NetworkArchitect() {
 									type="button"
 									disabled={isTraining}
 									onClick={() => removeLayer(i)}
-									className="text-slate-500 hover:text-red-400 disabled:opacity-30 transition-colors text-xs leading-none"
+									className="text-slate-400 hover:text-red-400 disabled:opacity-30 transition-colors text-xs leading-none"
 									title="Remove layer"
 								>
 									✕
@@ -362,7 +362,7 @@ export function NetworkArchitect() {
 
 							{/* Flatten: no config */}
 							{layer.type === "flatten" && (
-								<p className="text-[10px] text-slate-500">No config</p>
+								<p className="text-[10px] text-slate-400">No config</p>
 							)}
 
 							{errs.length > 0 && (
@@ -414,7 +414,7 @@ export function NetworkArchitect() {
 
 			{/* Param count footer */}
 			<div className="mt-2 pt-2 border-t border-slate-800 flex justify-between items-center">
-				<span className="text-[10px] text-slate-500">Total parameters</span>
+				<span className="text-[10px] text-slate-400">Total parameters</span>
 				<span className="text-xs font-mono text-slate-300">
 					{totalParams.toLocaleString()}
 				</span>

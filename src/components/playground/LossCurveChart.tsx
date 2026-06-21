@@ -393,7 +393,7 @@ export function LossCurveChart() {
 			</p>
 			{metricsHistory.length === 0 ? (
 				<div className="flex-1 flex items-center justify-center">
-					<p className="text-xs text-slate-600">Train to see metrics</p>
+					<p className="text-xs text-slate-400">Train to see metrics</p>
 				</div>
 			) : (
 				<div ref={containerRef} className="flex-1 min-h-0" />
