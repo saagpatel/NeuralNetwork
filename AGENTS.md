@@ -2,7 +2,7 @@
 
 ## Communication Contract
 
-- Inherit the global Codex communication contract from `/Users/d/.codex/AGENTS.md`.
+- Inherit the global Codex communication contract from `~/.codex/AGENTS.md`.
 - Keep this file focused on NeuralNetwork-specific product, safety, and verification rules.
 
 ## Project Goal

@@ -51,7 +51,7 @@ npm run start      # preview static export
 
 ## What This Project Is
 
-NeuralNetwork is an active local project in the /Users/d/Projects portfolio.
+NeuralNetwork is an active local project in the ~/Projects portfolio.
 
 ## Current State
 
