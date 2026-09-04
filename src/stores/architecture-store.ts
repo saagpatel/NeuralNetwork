@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import { MAX_NETWORK_LAYERS } from "@/constants/network";
 import { PRESETS } from "@/constants/presets";
 import type { LayerConfig } from "@/types";
 
@@ -25,6 +26,7 @@ export const useArchitectureStore = create<ArchitectureStore>()(
 			addLayer(layer, atIndex) {
 				set(
 					(state) => {
+						if (state.layers.length >= MAX_NETWORK_LAYERS) return state;
 						const next = [...state.layers];
 						if (atIndex !== undefined) {
 							next.splice(atIndex, 0, layer);

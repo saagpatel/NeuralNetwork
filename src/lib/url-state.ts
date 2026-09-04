@@ -1,5 +1,6 @@
 import LZString from "lz-string";
 import { DATASETS } from "@/constants/datasets";
+import { MAX_NETWORK_LAYERS } from "@/constants/network";
 import { useArchitectureStore } from "@/stores/architecture-store";
 import { useTrainingStore } from "@/stores/training-store";
 import type {
@@ -255,7 +256,7 @@ function parseShareableState(raw: unknown): ShareableState | null {
 	if (
 		!Array.isArray(raw.layers) ||
 		raw.layers.length < 1 ||
-		raw.layers.length > 64
+		raw.layers.length > MAX_NETWORK_LAYERS
 	) {
 		return null;
 	}
