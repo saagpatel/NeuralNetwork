@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Slider } from "@/components/ui/Slider";
+import { MAX_NETWORK_LAYERS } from "@/constants/network";
 import { PRESET_MAP, PRESETS } from "@/constants/presets";
 import { validateArchitecture } from "@/lib/architecture-validator";
 import { useArchitectureStore } from "@/stores/architecture-store";
@@ -106,6 +107,7 @@ export function NetworkArchitect() {
 	const [addMenuOpen, setAddMenuOpen] = useState(false);
 
 	const isTraining = status === "training" || status === "loading";
+	const atLayerLimit = layers.length >= MAX_NETWORK_LAYERS;
 	const validationErrors = validateArchitecture(layers, inputShape);
 	const errorsByLayer = new Map<number, string[]>();
 	const globalErrors: string[] = [];
@@ -126,6 +128,7 @@ export function NetworkArchitect() {
 
 	function handleAddLayer(type: LayerConfig["type"]) {
 		setAddMenuOpen(false);
+		if (atLayerLimit) return;
 		if (type === "dense") {
 			addLayer({ type: "dense", units: 64, activation: "relu" });
 		} else if (type === "flatten") {
@@ -384,7 +387,12 @@ export function NetworkArchitect() {
 				<Button
 					variant="ghost"
 					size="sm"
-					disabled={isTraining}
+					disabled={isTraining || atLayerLimit}
+					title={
+						atLayerLimit
+							? `Maximum ${MAX_NETWORK_LAYERS} layers`
+							: undefined
+					}
 					onClick={() => setAddMenuOpen((o) => !o)}
 					className="w-full border border-dashed border-slate-700 hover:border-slate-500 text-slate-400"
 				>

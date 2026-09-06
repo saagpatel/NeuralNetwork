@@ -4,12 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { TUTORIALS } from "@/constants/tutorials";
 import { initTFBackend } from "@/lib/backend-selector";
-import {
-	decodeState,
-	encodeState,
-	getHashParam,
-	setHashParam,
-} from "@/lib/url-state";
+import { encodeState, setHashParam } from "@/lib/url-state";
 import { useArchitectureStore } from "@/stores/architecture-store";
 import { useTrainingStore } from "@/stores/training-store";
 import type { RightPanelTab } from "@/stores/ui-store";
@@ -20,6 +15,7 @@ import { HyperparamPanel } from "./HyperparamPanel";
 import { LossCurveChart } from "./LossCurveChart";
 import { NetworkArchitect } from "./NetworkArchitect";
 import { NetworkCanvas } from "./NetworkCanvas";
+import { SharedConfigHydrator } from "./SharedConfigHydrator";
 import { TrainingControls } from "./TrainingControls";
 import { TutorialOverlay } from "./TutorialOverlay";
 
@@ -73,18 +69,6 @@ export function PlaygroundShell() {
 		document.documentElement.classList.toggle("dark", darkMode);
 	}, [darkMode]);
 
-	// Hydrate state from URL hash on mount
-	useEffect(() => {
-		const encoded = getHashParam("config");
-		if (!encoded) return;
-		const decoded = decodeState(encoded);
-		if (!decoded) return;
-		useArchitectureStore.getState().setLayers(decoded.layers);
-		useArchitectureStore.getState().setInputShape(decoded.inputShape);
-		useTrainingStore.getState().setDatasetId(decoded.datasetId);
-		useTrainingStore.getState().setTrainingConfig(decoded.trainingConfig);
-	}, []);
-
 	// Hydrate dark mode preference from localStorage on mount
 	useEffect(() => {
 		const saved = localStorage.getItem("darkMode");
@@ -107,6 +91,7 @@ export function PlaygroundShell() {
 
 	return (
 		<div className="flex flex-col h-screen bg-slate-950 text-slate-100 overflow-hidden">
+			<SharedConfigHydrator />
 			{/* Header */}
 			<header className="flex items-center justify-between px-4 h-12 border-b border-slate-800 flex-shrink-0">
 				<div className="flex items-center gap-3">
