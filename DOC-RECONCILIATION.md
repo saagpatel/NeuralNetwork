@@ -127,3 +127,5 @@ also says 30 MB. The roadmap figure (60 MB) is stale.
 Generated: 2026-05-30 22:44:40 PDT
 Branch: `docs/truth-up-2026-05-30`
 HEAD sha reconciled against: `a0edd4b9a3269c869361e1fc5dbc9f8dd4c5e989`
+
+> Superseded 2026-10-03: the stale npm `package-lock.json` described above was removed; pnpm is the only package manager.

@@ -42,7 +42,7 @@ pnpm build         # type-check + static export to out/
 - `src/types/index.ts` — `LayerConfig[]` JSON schema for network definition (serializable for URL sharing)
 - Canvas 2D for all high-frequency rendering (network graph, weight heatmaps); D3 for metrics only
 - IndexedDB via idb-keyval caches datasets to avoid re-downloading 11-60MB on each visit
-- Backend fallback: WebGPU → WebGL → TF.js default (CPU); the `wasm` entry in `src/lib/backend-selector.ts` cannot load because `@tensorflow/tfjs-backend-wasm` is not a dependency
+- Backend fallback: WebGPU → WebGL → TF.js default (CPU)
 
 ## Known Issues
 - CIFAR-10 dataset files must be downloaded separately (gitignored due to binary size)
