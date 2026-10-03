@@ -70,15 +70,15 @@ The build uses `output: "export"`. Preview `out/` with a local static-file serve
 
 | Layer | Technology |
 |-------|------------|
-| Framework | Next.js 14 (App Router, static export) |
+| Framework | Next.js 16 (App Router, static export) |
 | ML runtime | TensorFlow.js 4.x + WebGPU backend |
 | Training execution | Web Worker + Comlink |
 | Network graph | Canvas 2D (weight heatmaps) |
 | Charts | D3.js 7.x |
-| State | Zustand 4.x |
+| State | Zustand 5.x |
 | Dataset caching | IndexedDB via idb-keyval |
 | URL sharing | LZ-string (compressed hash params) |
-| Styling | Tailwind CSS 3.x |
+| Styling | Tailwind CSS 4.x |
 
 ## License
 
