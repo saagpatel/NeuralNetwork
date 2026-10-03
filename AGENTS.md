@@ -13,7 +13,7 @@ NeuralNetwork is a zero-backend Next.js playground for training and inspecting r
 
 - `README.md` for product scope, local commands, and known dataset constraints.
 - `CLAUDE.md` for portfolio context and current state.
-- `package.json` and `package-lock.json` before dependency or script changes.
+- `package.json`, `pnpm-lock.yaml`, and `pnpm-workspace.yaml` before dependency or script changes.
 - `src/workers/`, `src/lib/`, `src/components/playground/`, and `src/stores/` before changing training, datasets, visualization, or UI state.
 
 ## Core Rules
@@ -34,13 +34,9 @@ NeuralNetwork is a zero-backend Next.js playground for training and inspecting r
 
 ## Verification
 
-- Use `.codex/verify.commands` as the canonical verifier for routine Codex work.
-- Current canonical verifier:
-  - `npm ci`
-  - `npm test`
-  - `npm run build`
-- Current caveat: the build passes with existing React hook dependency warnings in `ConfusionMatrix.tsx`; treat them as cleanup candidates unless the task touches that component.
-- If dependency install fails because `package-lock.json` is stale, refresh the lockfile intentionally and rerun the canonical verifier.
+- Follow [README verification](README.md#verification) for the supported Node/pnpm versions, focused fixture checks, full tests, lint, build, and conditional browser checks.
+- Use `.codex/verify.commands` as the routine command sequence. Keep frozen-lockfile verification separate from intentional dependency updates.
+- Report unavailable lanes explicitly. Local fixtures do not establish real-dataset, GPU, provider, or deployed behavior.
 
 ## Done Criteria
 

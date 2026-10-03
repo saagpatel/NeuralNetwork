@@ -21,11 +21,13 @@ An interactive, in-browser neural network playground where you build custom netw
 ## Quick Start
 
 ### Prerequisites
-- Node.js 18+, pnpm
+- Node.js 22.13+ on the 22.x line, 24.x, or 26+; the current Vitest, Vite, and jsdom dependencies exclude Node 18 and 20.
+- pnpm 11.5.2, matching `packageManager` in `package.json`.
+- Run the commands below from the repository root.
 
 ### Installation
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 ```
 
 ### Usage
@@ -33,6 +35,36 @@ pnpm install
 pnpm dev
 # Open http://localhost:3000
 ```
+
+## Verification
+
+Use pnpm and the checked-in `pnpm-lock.yaml` / `pnpm-workspace.yaml`. Install with the frozen lockfile before running checks; dependency installation may access the package registry and run the explicitly allowed dependency build scripts. Do not refresh a lockfile just to make verification pass.
+
+For a focused local check of dataset parsing and shared URL validation:
+
+```bash
+pnpm test src/lib/dataset-loader.test.ts src/lib/url-state.test.ts
+```
+
+These tests use synthetic in-memory buffers and URL payloads. They do not download datasets, train a model, connect to a provider, or deploy anything. The broader suite also includes CPU model compilation, store behavior, and React hydration:
+
+```bash
+pnpm test
+pnpm lint
+pnpm build
+```
+
+`pnpm build` includes TypeScript checking and writes `.next/` and the static export in `out/`; Next.js may also regenerate `next-env.d.ts`, so review working-tree changes afterward. There is no separate typecheck or formatter script. Lint currently reports two existing hook dependency warnings in `ConfusionMatrix.tsx`.
+
+[`.codex/verify.commands`](.codex/verify.commands) lists the routine install/check sequence. CI currently runs install, lint, and tests only for `main`; the established default is `feat/phase-3-polish-sharing-deployment`, so a PR to that branch may have no CI checks. Record local verification explicitly instead of treating absent checks as a pass.
+
+### Browser checks when user-facing behavior changes
+
+Use `pnpm dev` locally when changing the playground UI, shared URLs, training controls, or visualizations; pure documentation changes do not require a browser run. Check the affected flow and responsive layout, and inspect browser errors. For sharing changes, verify a malformed config shows the ignored notice without replacing the default model, a valid synthetic config hydrates, and Share preserves unrelated hash parameters. These checks can run without starting training or downloading data.
+
+Dataset loading or training needs a separate explicitly intended check: it can fetch datasets and write the browser's IndexedDB cache. CIFAR-10 binary files are excluded from Git, and WebGPU availability depends on the browser and OS. Record which backend and dataset were actually exercised; local fixture tests do not establish GPU or real-dataset behavior.
+
+The build uses `output: "export"`. Preview `out/` with a local static-file server if testing the built artifact; `pnpm start` invokes `next start` and cannot serve this export. Publishing and deployment are separate from local verification.
 
 ## Tech Stack
 
