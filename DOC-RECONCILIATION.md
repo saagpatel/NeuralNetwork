@@ -53,12 +53,11 @@ contradict the "Phase 3 complete" claim.
 **Status:** `drifted` (package manager)
 **Evidence:** `verified-by-reading-code`
 
-README's "Running locally" and "Building for production" sections used `pnpm install`, `pnpm dev`,
-and `pnpm build` exclusively. Both `package-lock.json` (npm) and `pnpm-lock.yaml` coexist in the
-repo. CLAUDE.md's `Build & Run` section and AGENTS.md's canonical verification commands both use
-`npm` (`npm install`, `npm run dev`, `npm ci`, etc.), indicating npm is at minimum equally canonical.
-The README was updated to show both: `npm install   # or: pnpm install` and
-`npm run dev   # or: pnpm dev`, and `npm run build   # or: pnpm build`.
+The repository uses pnpm exclusively: `package.json` pins the package manager, and
+`pnpm-lock.yaml` is canonical. README, CLAUDE.md, CI, and `.codex/verify.commands`
+use `pnpm install --frozen-lockfile` and pnpm scripts. The unused npm lockfile was
+removed; there is no Dependabot configuration. Earlier guidance presenting npm as
+an equally canonical option is superseded by these current settings.
 
 CLAUDE.md architecture paths were also corrected:
 - `lib/worker/` → `src/workers/` (actual path from Glob)
@@ -73,7 +72,7 @@ CLAUDE.md architecture paths were also corrected:
 All three documented risks match reality:
 - CIFAR-10 binary files are gitignored (confirmed by their absence from the Glob result).
 - Input layer compressed representation is in `src/lib/network-layout.ts` and referenced in `src/components/playground/NetworkCanvas.tsx`.
-- WebGPU fallback chain (WebGPU → WebGL → WASM) is implemented in `src/lib/backend-selector.ts`.
+- WebGPU fallback chain (WebGPU → WebGL → TF.js default (CPU)) is implemented in `src/lib/backend-selector.ts`.
 
 ### 6. Next move
 

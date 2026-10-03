@@ -13,7 +13,7 @@
 │   └── [Controls: Train/Pause/Reset/Speed]
 │
 ├── [Training Web Worker]
-│   ├── [TF.js Runtime (WebGPU → WebGL → WASM fallback)]
+│   ├── [TF.js Runtime (WebGPU → WebGL → TF.js default (CPU) fallback)]
 │   ├── [Model Compiler: LayerConfig[] → tf.Sequential/tf.Model]
 │   ├── [Training Loop: model.fit() with onEpochEnd/onBatchEnd callbacks]
 │   └── [Weight Extractor: serialize layer weights as Float32Arrays]
@@ -65,7 +65,7 @@ neural-network-playground/
 │   │   ├── dataset-loader.ts          # Fetch, parse, cache datasets in IndexedDB
 │   │   ├── weight-extractor.ts        # Extract + serialize layer weights for viz
 │   │   ├── network-layout.ts          # Calculate node positions for canvas rendering
-│   │   └── backend-selector.ts        # WebGPU → WebGL → WASM fallback chain
+│   │   └── backend-selector.ts        # WebGPU → WebGL → TF.js default (CPU) fallback chain
 │   ├── stores/
 │   │   ├── architecture-store.ts      # Zustand: LayerConfig[], add/remove/edit actions
 │   │   ├── training-store.ts          # Zustand: training state, metrics history, weight snapshots
@@ -287,13 +287,13 @@ interface MetricsHistoryPoint {
 ### Dependencies
 ```bash
 # Create project
-npx create-next-app@latest neural-network-playground --typescript --tailwind --app --eslint --src-dir
+pnpm dlx create-next-app@latest neural-network-playground --typescript --tailwind --app --eslint --src-dir
 
 # Core dependencies
-npm install @tensorflow/tfjs@4 @tensorflow/tfjs-backend-webgpu@4 zustand@4 d3@7 comlink@4 idb-keyval@6
+pnpm add @tensorflow/tfjs@4 @tensorflow/tfjs-backend-webgpu@4 zustand@4 d3@7 comlink@4 idb-keyval@6
 
 # Dev dependencies
-npm install -D @types/d3@7
+pnpm add -D @types/d3@7
 ```
 
 ## Scope Boundaries
@@ -341,9 +341,9 @@ npm install -D @types/d3@7
 **Objective:** Scaffolded Next.js project with TF.js training running in a Web Worker, MNIST dataset loading with IndexedDB caching, and a working model compiler.
 
 **Tasks:**
-1. Scaffold Next.js project with all dependencies installed — **Acceptance:** `npm run dev` serves blank page at localhost:3000, zero TypeScript errors
+1. Scaffold Next.js project with all dependencies installed — **Acceptance:** `pnpm dev` serves blank page at localhost:3000, zero TypeScript errors
 2. Create all type definitions in `src/types/index.ts` from the Type Definitions section above — **Acceptance:** Types compile with zero errors in strict mode
-3. Implement `src/lib/backend-selector.ts` — detect WebGPU availability, set TF.js backend with fallback chain: WebGPU → WebGL → WASM — **Acceptance:** Console logs `"TF.js backend: webgpu"` (or `"webgl"` on unsupported browsers) on page load
+3. Implement `src/lib/backend-selector.ts` — detect WebGPU availability, set TF.js backend with fallback chain: WebGPU → WebGL → TF.js default (CPU) — **Acceptance:** Console logs `"TF.js backend: webgpu"` (or `"webgl"` on unsupported browsers) on page load
 4. Implement `src/lib/dataset-loader.ts` — fetch MNIST IDX files, parse binary format, normalize to Float32 [0,1], cache processed arrays in IndexedDB via idb-keyval — **Acceptance:** Call `loadDataset('mnist')` → returns `{trainImages: Float32Array, trainLabels: Uint8Array, testImages: Float32Array, testLabels: Uint8Array}` with correct sizes (60000×784 train, 10000×784 test). Second call loads from IndexedDB cache in <500ms.
 5. Implement `src/lib/model-compiler.ts` — convert `NetworkConfig` (LayerConfig[] + inputShape) to a compiled `tf.Sequential` model — **Acceptance:** Compile `{inputShape: [28,28,1], layers: [{type:'flatten'}, {type:'dense', units:128, activation:'relu'}, {type:'dense', units:10, activation:'softmax'}]}` → model with 101,770 trainable parameters. Compile with `{loss: 'categoricalCrossentropy', optimizer: 'adam', metrics: ['accuracy']}`.
 6. Implement `src/workers/training.worker.ts` — Web Worker that: receives `WorkerStartMessage`, compiles model, loads dataset, runs `model.fit()` with `onBatchEnd`/`onEpochEnd` callbacks, posts `TrainingUpdate` messages every N batches — **Acceptance:** Post start message from main thread with default MNIST config → receive ≥10 `WorkerUpdateMessage`s → receive `WorkerCompleteMessage` with accuracy >90% after 5 epochs
@@ -353,8 +353,8 @@ npm install -D @types/d3@7
 10. Implement `src/constants/datasets.ts` (dataset metadata), `presets.ts` (3 dense network templates), `defaults.ts` (default hyperparams: Adam, lr=0.001, batch=64, epochs=10, valSplit=0.2) — **Acceptance:** All constants importable, TypeScript-typed correctly
 
 **Verification checklist:**
-- [ ] `npm run build` → zero errors, zero warnings
-- [ ] `npm run dev` → loads at localhost:3000
+- [ ] `pnpm build` → zero errors, zero warnings
+- [ ] `pnpm dev` → loads at localhost:3000
 - [ ] Browser console → `"TF.js backend: webgpu"` or `"webgl"`
 - [ ] Manual test (console): `loadDataset('mnist')` → returns correct tensor shapes
 - [ ] Manual test (console): trigger training of dense [128,64,10] on MNIST via worker → console logs epoch metrics, accuracy >90% after 5 epochs
@@ -392,7 +392,7 @@ npm install -D @types/d3@7
 10. Implement overfitting demo: button/toggle that limits training set to 500 random samples and disables regularization — **Acceptance:** Enable overfitting mode → train for 50 epochs → train loss drops near 0 by epoch 20 → val loss rises visibly after ~epoch 15 → clear visual divergence in loss chart. Add a label/annotation on the chart marking the divergence point.
 
 **Verification checklist:**
-- [ ] `npm run dev` → full playground UI renders with all panels
+- [ ] `pnpm dev` → full playground UI renders with all panels
 - [ ] Train "Simple Dense" on MNIST → loss curves animate smoothly (no jank)
 - [ ] Weight heatmaps update at configured snapshot interval
 - [ ] Pause → Resume → training continues correctly (metrics pick up where they left off)
@@ -466,7 +466,7 @@ npm install -D @types/d3@7
 5. Performance optimization pass: (a) Profile Canvas rendering — ensure no unnecessary redraws, (b) Memoize Zustand selectors, (c) Lazy-load D3 (dynamic import), (d) Lazy-load TF.js WebGPU backend, (e) Code-split the activation viewer and confusion matrix — **Acceptance:** 60 FPS sustained on M4 Mac during training. ≥30 FPS on 2020 Intel Mac. Time-to-interactive < 3 seconds.
 6. Write `README.md`: project title + tagline + screenshot/GIF, feature list, "Try it" link, architecture overview diagram, getting started (clone, install, dev), tech stack, contributing guide, credits + inspiration (link to original TF Playground, CNN Explainer). — **Acceptance:** README renders correctly on GitHub with working links and visible screenshots.
 7. Add MIT `LICENSE` file at project root — **Acceptance:** File exists, correct MIT text with current year and your name.
-8. Configure `next.config.js` for static export: `output: 'export'`, configure `basePath` if needed, handle dynamic imports for Web Worker — **Acceptance:** `npm run build` produces `out/` directory. `npx serve out/` serves fully functional app.
+8. Configure `next.config.js` for static export: `output: 'export'`, configure `basePath` if needed, handle dynamic imports for Web Worker — **Acceptance:** `pnpm build` produces `out/` directory. `pnpm dlx serve out/` serves fully functional app.
 9. Deploy to Vercel: connect GitHub repo, configure build settings — **Acceptance:** App live at `neural-network-playground.vercel.app` (or custom domain), all features work including Web Worker training.
 10. Add `<head>` metadata in `layout.tsx`: title, description, Open Graph image (screenshot), Twitter card — **Acceptance:** Share URL on LinkedIn → shows preview card with title "Neural Network Playground" and screenshot.
 
@@ -476,8 +476,8 @@ npm install -D @types/d3@7
 - [ ] Tutorials: all 3 load correctly with step-by-step explainer cards
 - [ ] Dark mode: full toggle, no rendering artifacts, Canvas and D3 colors adapt
 - [ ] 768px viewport: all panels accessible, no overflow
-- [ ] `npm run build` → clean static export, no errors
-- [ ] `npx serve out/` → app fully functional from static files
+- [ ] `pnpm build` → clean static export, no errors
+- [ ] `pnpm dlx serve out/` → app fully functional from static files
 - [ ] Vercel: live URL loads in < 3 seconds, training works
 - [ ] Open Graph: sharing on LinkedIn shows preview card
 - [ ] README: complete, clear, no broken links
