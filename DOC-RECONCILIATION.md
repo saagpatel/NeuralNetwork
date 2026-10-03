@@ -53,11 +53,12 @@ contradict the "Phase 3 complete" claim.
 **Status:** `drifted` (package manager)
 **Evidence:** `verified-by-reading-code`
 
-The repository uses pnpm exclusively: `package.json` pins the package manager, and
-`pnpm-lock.yaml` is canonical. README, CLAUDE.md, CI, and `.codex/verify.commands`
-use `pnpm install --frozen-lockfile` and pnpm scripts. The unused npm lockfile was
-removed; there is no Dependabot configuration. Earlier guidance presenting npm as
-an equally canonical option is superseded by these current settings.
+README's "Running locally" and "Building for production" sections used `pnpm install`, `pnpm dev`,
+and `pnpm build` exclusively. Both `package-lock.json` (npm) and `pnpm-lock.yaml` coexist in the
+repo. CLAUDE.md's `Build & Run` section and AGENTS.md's canonical verification commands both use
+`npm` (`npm install`, `npm run dev`, `npm ci`, etc.), indicating npm is at minimum equally canonical.
+The README was updated to show both: `npm install   # or: pnpm install` and
+`npm run dev   # or: pnpm dev`, and `npm run build   # or: pnpm build`.
 
 CLAUDE.md architecture paths were also corrected:
 - `lib/worker/` → `src/workers/` (actual path from Glob)
@@ -72,7 +73,7 @@ CLAUDE.md architecture paths were also corrected:
 All three documented risks match reality:
 - CIFAR-10 binary files are gitignored (confirmed by their absence from the Glob result).
 - Input layer compressed representation is in `src/lib/network-layout.ts` and referenced in `src/components/playground/NetworkCanvas.tsx`.
-- WebGPU fallback chain (WebGPU → WebGL → TF.js default (CPU)) is implemented in `src/lib/backend-selector.ts`.
+- WebGPU fallback chain (WebGPU → WebGL → WASM) is implemented in `src/lib/backend-selector.ts`.
 
 ### 6. Next move
 
@@ -126,3 +127,5 @@ also says 30 MB. The roadmap figure (60 MB) is stale.
 Generated: 2026-05-30 22:44:40 PDT
 Branch: `docs/truth-up-2026-05-30`
 HEAD sha reconciled against: `a0edd4b9a3269c869361e1fc5dbc9f8dd4c5e989`
+
+> Superseded 2026-10-03: the stale npm `package-lock.json` described above was removed; pnpm is the only package manager.
