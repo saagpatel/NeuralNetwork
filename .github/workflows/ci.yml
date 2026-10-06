@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/phase-3-polish-sharing-deployment]
   pull_request:
-    branches: [main]
+    branches: [main, feat/phase-3-polish-sharing-deployment]
 
 permissions:
   contents: read
