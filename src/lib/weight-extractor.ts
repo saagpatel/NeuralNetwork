@@ -17,35 +17,34 @@ const WEIGHTLESS_LAYER_TYPES = new Set([
 export function extractWeights(
 	model: tf.Sequential | tf.LayersModel,
 ): WeightSnapshot[] {
-	return tf.tidy(() => {
-		const snapshots: WeightSnapshot[] = [];
-
+	const snapshots: WeightSnapshot[] = [];
+	tf.tidy(() => {
 		model.layers.forEach((layer, layerIndex) => {
-		// Skip layers known to have no weights
-		if (WEIGHTLESS_LAYER_TYPES.has(layer.getClassName())) return;
+			// Skip layers known to have no weights
+			if (WEIGHTLESS_LAYER_TYPES.has(layer.getClassName())) return;
 
-		const weightTensors = layer.getWeights();
-		if (weightTensors.length === 0) return;
+			const weightTensors = layer.getWeights();
+			if (weightTensors.length === 0) return;
 
-		// weights[0] = kernel, weights[1] = bias (standard for Dense/Conv2D)
-		const [kernelTensor, biasTensor] = weightTensors;
-		if (!kernelTensor) return;
+			// weights[0] = kernel, weights[1] = bias (standard for Dense/Conv2D)
+			const [kernelTensor, biasTensor] = weightTensors;
+			if (!kernelTensor) return;
 
-		// .dataSync() pulls Float32Array from GPU/CPU — safe to call outside tidy
-		const weights = kernelTensor.dataSync() as Float32Array;
-		const biases = biasTensor
-			? (biasTensor.dataSync() as Float32Array)
-			: new Float32Array(0);
+			// .dataSync() pulls Float32Array from GPU/CPU — safe to call outside tidy
+			const weights = kernelTensor.dataSync() as Float32Array;
+			const biases = biasTensor
+				? (biasTensor.dataSync() as Float32Array)
+				: new Float32Array(0);
 
-		snapshots.push({
-			layerIndex,
-			layerName: layer.name,
-			weights: new Float32Array(weights), // copy — original may be GC'd
-			biases: new Float32Array(biases),
-			shape: kernelTensor.shape,
+			snapshots.push({
+				layerIndex,
+				layerName: layer.name,
+				weights: new Float32Array(weights), // copy — original may be GC'd
+				biases: new Float32Array(biases),
+				shape: kernelTensor.shape,
+			});
 		});
-		});
-
-		return snapshots;
 	});
+
+	return snapshots;
 }
