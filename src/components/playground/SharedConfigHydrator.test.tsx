@@ -101,7 +101,7 @@ function spyShareableSetters() {
 		addLayer: vi.spyOn(architecture, "addLayer"),
 		removeLayer: vi.spyOn(architecture, "removeLayer"),
 		updateLayer: vi.spyOn(architecture, "updateLayer"),
-		loadPreset: vi.spyOn(architecture, "loadPreset"),
+		applyPreset: vi.spyOn(architecture, "applyPreset"),
 		setDatasetId: vi.spyOn(training, "setDatasetId"),
 		setTrainingConfig: vi.spyOn(training, "setTrainingConfig"),
 		setDataset: vi.spyOn(training, "setDataset"),
@@ -295,7 +295,7 @@ describe("SharedConfigHydrator", () => {
 		expect(spies.addLayer).not.toHaveBeenCalled();
 		expect(spies.removeLayer).not.toHaveBeenCalled();
 		expect(spies.updateLayer).not.toHaveBeenCalled();
-		expect(spies.loadPreset).not.toHaveBeenCalled();
+		expect(spies.applyPreset).not.toHaveBeenCalled();
 		expect(spies.setDataset).not.toHaveBeenCalled();
 		expect(spies.setStatus).not.toHaveBeenCalled();
 		expect(spies.setProgress).not.toHaveBeenCalled();

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { MAX_NETWORK_LAYERS } from "@/constants/network";
 import { PRESETS } from "@/constants/presets";
+import { useTrainingStore } from "@/stores/training-store";
 import type { LayerConfig } from "@/types";
 
 interface ArchitectureStore {
@@ -11,7 +12,7 @@ interface ArchitectureStore {
 	addLayer(layer: LayerConfig, atIndex?: number): void;
 	removeLayer(index: number): void;
 	updateLayer(index: number, update: Partial<LayerConfig>): void;
-	loadPreset(presetId: string): void;
+	applyPreset(presetId: string): void;
 	setInputShape(shape: number[]): void;
 	setLayers(layers: LayerConfig[]): void;
 }
@@ -62,10 +63,15 @@ export const useArchitectureStore = create<ArchitectureStore>()(
 				);
 			},
 
-			loadPreset(presetId) {
+			applyPreset(presetId) {
 				const preset = PRESETS.find((p) => p.id === presetId);
 				if (!preset) return;
-				set({ layers: preset.layers }, false, "loadPreset");
+				set(
+					{ layers: preset.layers, inputShape: preset.inputShape ?? [28, 28, 1] },
+					false,
+					"applyPreset",
+				);
+				useTrainingStore.getState().setDatasetId(preset.recommendedDataset);
 			},
 
 			setInputShape(shape) {
