@@ -1,9 +1,28 @@
 import { describe, expect, it } from "vitest";
 import {
+	DatasetCountMismatchError,
 	normalizeImages,
 	parseIdxImages,
 	parseIdxLabels,
+	validateCounts,
 } from "./dataset-loader";
+import { getDatasetMeta } from "@/constants/datasets";
+
+describe("validateCounts", () => {
+	it("accepts counts that match the dataset metadata", () => {
+		const meta = getDatasetMeta("mnist");
+		expect(() =>
+			validateCounts("mnist", meta, 60000, 60000, 10000, 10000),
+		).not.toThrow();
+	});
+
+	it("throws a named error when a parsed split count differs", () => {
+		const meta = getDatasetMeta("cifar10");
+		expect(() => validateCounts("cifar10", meta, 50000, 50000, 10000, 10000)).toThrow(
+			DatasetCountMismatchError,
+		);
+	});
+});
 
 describe("parseIdxImages", () => {
 	function makeImageBuffer(

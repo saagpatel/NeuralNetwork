@@ -10,6 +10,13 @@ export interface DatasetTensors {
 	meta: DatasetMeta;
 }
 
+export class DatasetCountMismatchError extends Error {
+	constructor(id: DatasetId, split: "train" | "test", expected: number, actual: number) {
+		super(`${id} ${split} dataset contains ${actual} samples; expected ${expected}`);
+		this.name = "DatasetCountMismatchError";
+	}
+}
+
 interface CachedDataset {
 	trainImages: ArrayBuffer;
 	trainLabels: ArrayBuffer;
@@ -20,6 +27,30 @@ interface CachedDataset {
 // IDX magic numbers (big-endian)
 const IDX_IMAGES_MAGIC = 0x00000803;
 const IDX_LABELS_MAGIC = 0x00000801;
+let warnedAboutCache = false;
+
+async function getCachedDataset(key: string): Promise<CachedDataset | undefined> {
+	try {
+		return await get<CachedDataset>(key);
+	} catch (error) {
+		if (!warnedAboutCache) {
+			console.warn("Dataset cache unavailable; loading without cache", error);
+			warnedAboutCache = true;
+		}
+		return undefined;
+	}
+}
+
+async function cacheDataset(key: string, dataset: CachedDataset): Promise<void> {
+	try {
+		await set(key, dataset);
+	} catch (error) {
+		if (!warnedAboutCache) {
+			console.warn("Dataset cache unavailable; continuing without cache", error);
+			warnedAboutCache = true;
+		}
+	}
+}
 
 /**
  * Parse an IDX-formatted binary buffer (MNIST/Fashion-MNIST format).
@@ -164,15 +195,17 @@ export async function loadDataset(
 	const meta = getDatasetMeta(id);
 
 	// Check IndexedDB cache
-	const cached = await get<CachedDataset>(idbKey(id));
+	const cached = await getCachedDataset(idbKey(id));
 	if (cached) {
-		return {
+		const result = {
 			trainImages: new Float32Array(cached.trainImages),
 			trainLabels: new Uint8Array(cached.trainLabels),
 			testImages: new Float32Array(cached.testImages),
 			testLabels: new Uint8Array(cached.testLabels),
 			meta,
 		};
+		validateCounts(id, meta, result.trainImages.length / meta.inputShape.reduce((a, b) => a * b, 1), result.trainLabels.length, result.testImages.length / meta.inputShape.reduce((a, b) => a * b, 1), result.testLabels.length);
+		return result;
 	}
 
 	// CIFAR-10 uses a single combined binary file per split (not IDX format)
@@ -204,14 +237,15 @@ export async function loadDataset(
 		const testBuf = await testResponse.arrayBuffer();
 
 		onProgress?.("Processing...", 0.97);
-		const { xs: trainImages, ys: trainOneHot } = parseCifar10Batches(
+		const { xs: trainImages, ys: trainOneHot, count: trainCount } = parseCifar10Batches(
 			trainBuf,
 			meta.numClasses,
 		);
-		const { xs: testImages, ys: testOneHot } = parseCifar10Batches(
+		const { xs: testImages, ys: testOneHot, count: testCount } = parseCifar10Batches(
 			testBuf,
 			meta.numClasses,
 		);
+		validateCounts(id, meta, trainCount, trainCount, testCount, testCount);
 
 		// Convert one-hot back to label indices for the Uint8Array API
 		const trainLabels = oneHotToLabels(trainOneHot, meta.numClasses);
@@ -223,7 +257,7 @@ export async function loadDataset(
 			testImages: (testImages.buffer as ArrayBuffer).slice(0),
 			testLabels: (testLabels.buffer as ArrayBuffer).slice(0),
 		};
-		await set(idbKey(id), toCache);
+		await cacheDataset(idbKey(id), toCache);
 
 		onProgress?.("Ready", 1);
 		return { trainImages, trainLabels, testImages, testLabels, meta };
@@ -255,6 +289,8 @@ export async function loadDataset(
 	const trainLabels = parseIdxLabels(trainLabelsBuf);
 	const testImages = normalizeImages(parseIdxImages(testImagesBuf));
 	const testLabels = parseIdxLabels(testLabelsBuf);
+	const pixelsPerImage = meta.inputShape.reduce((a, b) => a * b, 1);
+	validateCounts(id, meta, trainImages.length / pixelsPerImage, trainLabels.length, testImages.length / pixelsPerImage, testLabels.length);
 
 	// Cache in IndexedDB (cast to ArrayBuffer — these are never SharedArrayBuffers)
 	const toCache: CachedDataset = {
@@ -263,10 +299,27 @@ export async function loadDataset(
 		testImages: (testImages.buffer as ArrayBuffer).slice(0),
 		testLabels: (testLabels.buffer as ArrayBuffer).slice(0),
 	};
-	await set(idbKey(id), toCache);
+	await cacheDataset(idbKey(id), toCache);
 
 	onProgress?.("Ready", 1);
 	return { trainImages, trainLabels, testImages, testLabels, meta };
+}
+
+export function validateCounts(
+	id: DatasetId,
+	meta: DatasetMeta,
+	trainImages: number,
+	trainLabels: number,
+	testImages: number,
+	testLabels: number,
+) {
+	for (const [split, expected, images, labels] of [
+		["train", meta.trainSize, trainImages, trainLabels],
+		["test", meta.testSize, testImages, testLabels],
+	] as const) {
+		if (images !== expected) throw new DatasetCountMismatchError(id, split, expected, images);
+		if (labels !== expected) throw new DatasetCountMismatchError(id, split, expected, labels);
+	}
 }
 
 /**
