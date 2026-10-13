@@ -41,6 +41,21 @@ function activationColor(t: number): string {
 	return lerpColor((t - 0.5) * 2, 33, 145, 140, 253, 231, 37);
 }
 
+function neuronIndex(layer: LayerGeometry, visibleIndex: number): number | null {
+	if (!("nodes" in layer)) return null;
+	if (layer.visibleCount <= 1) return 0;
+	if (layer.visibleCount >= layer.totalCount) return visibleIndex;
+	const middle = Math.floor(layer.visibleCount / 2);
+	if (visibleIndex === middle) return null;
+	const displayedCount = layer.visibleCount - 1;
+	const displayedIndex = visibleIndex < middle ? visibleIndex : visibleIndex - 1;
+	return Math.round((displayedIndex / (displayedCount - 1)) * (layer.totalCount - 1));
+}
+
+export function denseKernelIndex(inputIndex: number, outputIndex: number, units: number) {
+	return inputIndex * units + outputIndex;
+}
+
 function drawDenseLayerGeometry(
 	ctx: CanvasRenderingContext2D,
 	layer: Extract<
@@ -260,9 +275,13 @@ function drawEdges(
 	// Draw all pairs, color by weight
 	fromNodes.forEach((from, fi) => {
 		toNodes.forEach((to, ti) => {
+			const inputIndex = neuronIndex(fromLayer, fi);
+			const outputIndex = neuronIndex(toLayer, ti);
+			if (inputIndex === null || outputIndex === null) return;
 			let color = "rgba(100,116,139,0.08)";
 			if (weights) {
-				const wIdx = fi * toNodes.length + ti;
+				const units = weights.shape[1] ?? toLayer.totalCount;
+				const wIdx = denseKernelIndex(inputIndex, outputIndex, units);
 				const w = weights.weights[wIdx] ?? 0;
 				color = weightColor(w);
 			}
@@ -387,8 +406,6 @@ export function NetworkCanvas() {
 			canvas.width = width * dpr;
 			canvas.height = height * dpr;
 			// Scale ctx so we can draw in logical pixels
-			const ctx = canvas.getContext("2d");
-			if (ctx) ctx.scale(dpr, dpr);
 			layoutRef.current = computeNetworkLayout(
 				layers,
 				inputShape,
