@@ -276,25 +276,28 @@ export function ActivationViewer() {
 		null,
 	);
 	const [loading, setLoading] = useState(false);
+	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
 	const classLabels = DATASETS[datasetId]?.classLabels ?? [];
 	const isRGB = (DATASETS[datasetId]?.inputShape[2] ?? 1) === 3;
 
 	const fetchSamples = useCallback(async () => {
 		setLoading(true);
+		setErrorMessage(null);
 		try {
 			const { api } = getTrainingWorker();
 			const result = await api.getTestSamples(20);
 			// Also run activations for first sample to get predictions
-			const actResult = await api.getActivations(0);
+			const activationBatch = await api.getActivationsBatch(
+				result.xs.map((_, index) => index),
+			);
+			const actResult = activationBatch[0] ?? [];
 			// Extract predictions from output layer
 			const outputAct = actResult[actResult.length - 1];
 			const predsArr: number[] = [];
 			if (outputAct) {
 				// Each call fetches single sample — batch fetch all preds
-				const allPreds = await Promise.all(
-					result.xs.map((_, i) =>
-						api.getActivations(i).then((acts) => {
+				const allPreds = activationBatch.map((acts) => {
 							const out = acts[acts.length - 1];
 							if (!out) return -1;
 							let maxIdx = 0;
@@ -306,9 +309,7 @@ export function ActivationViewer() {
 								}
 							}
 							return maxIdx;
-						}),
-					),
-				);
+						});
 				predsArr.push(...allPreds);
 			}
 			setSamples({
@@ -320,8 +321,9 @@ export function ActivationViewer() {
 			// Auto-select first wrong prediction
 			const firstWrong = predsArr.findIndex((p, i) => p !== result.ys[i]);
 			setSelectedIndex(firstWrong >= 0 ? firstWrong : 0);
-		} catch {
-			// Worker not ready or training not complete
+		} catch (error) {
+			console.warn("Activation samples unavailable", error);
+			setErrorMessage("Activations unavailable for this training run.");
 		} finally {
 			setLoading(false);
 		}
@@ -340,8 +342,9 @@ export function ActivationViewer() {
 			const { api } = getTrainingWorker();
 			const acts = await api.getActivations(idx);
 			setActivations(acts);
-		} catch {
-			// ignore
+		} catch (error) {
+			console.warn("Selected activation unavailable", error);
+			setErrorMessage("Selected activations unavailable.");
 		}
 	};
 
@@ -373,6 +376,11 @@ export function ActivationViewer() {
 					Activations
 				</p>
 			</div>
+			{errorMessage && (
+				<p role="status" className="px-3 py-2 text-xs text-amber-300">
+					{errorMessage}
+				</p>
+			)}
 
 			<div className="flex-1 overflow-y-auto scrollbar-thin p-2 space-y-3">
 				{/* Sample thumbnails */}
