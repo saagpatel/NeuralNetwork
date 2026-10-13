@@ -5,6 +5,7 @@ Thanks for your interest in contributing! Here's how to get started.
 ## Bug Reports & Feature Requests
 
 Open a [GitHub Issue](../../issues/new) with:
+
 - Clear description of the problem or idea
 - Steps to reproduce (for bugs)
 - Expected vs actual behavior

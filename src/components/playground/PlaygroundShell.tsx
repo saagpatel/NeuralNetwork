@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { TUTORIALS } from "@/constants/tutorials";
-import { initTFBackend } from "@/lib/backend-selector";
 import { encodeState, setHashParam } from "@/lib/url-state";
 import { useArchitectureStore } from "@/stores/architecture-store";
 import { useTrainingStore } from "@/stores/training-store";
@@ -48,6 +47,7 @@ export function PlaygroundShell() {
 	const trainingConfig = useTrainingStore((s) => s.trainingConfig);
 
 	const [shareToast, setShareToast] = useState(false);
+	const [shareError, setShareError] = useState<string | null>(null);
 	const [tutorialMenuOpen, setTutorialMenuOpen] = useState(false);
 
 	const TABS: { id: RightPanelTab; label: string }[] = [
@@ -56,9 +56,8 @@ export function PlaygroundShell() {
 		{ id: "activations", label: "Activations" },
 	];
 
-	// Initialize TF.js backend on mount, terminate worker on unmount
+	// Terminate the training worker on unmount.
 	useEffect(() => {
-		void initTFBackend();
 		return () => {
 			terminateTrainingWorker();
 		};
@@ -79,14 +78,20 @@ export function PlaygroundShell() {
 		}
 	}, []);
 
-	function handleShare() {
+	async function handleShare() {
+		setShareError(null);
 		setHashParam(
 			"config",
 			encodeState({ layers, inputShape, datasetId, trainingConfig }),
 		);
-		void navigator.clipboard.writeText(window.location.href);
-		setShareToast(true);
-		setTimeout(() => setShareToast(false), 2000);
+		try {
+			await navigator.clipboard.writeText(window.location.href);
+			setShareToast(true);
+			setTimeout(() => setShareToast(false), 2000);
+		} catch (error) {
+			console.warn("Could not copy the share link", error);
+			setShareError("Could not copy link. Copy it from the address bar.");
+		}
 	}
 
 	return (
@@ -191,6 +196,11 @@ export function PlaygroundShell() {
 							<div className="absolute right-0 top-full mt-1 px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded text-[10px] text-slate-300 whitespace-nowrap z-50">
 								Link copied!
 							</div>
+						)}
+						{shareError && (
+							<span role="alert" className="text-xs text-red-400">
+								{shareError}
+							</span>
 						)}
 					</div>
 

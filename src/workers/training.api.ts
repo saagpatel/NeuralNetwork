@@ -10,8 +10,8 @@ import type {
 interface FinalMetrics {
 	trainLoss: number;
 	trainAccuracy: number;
-	valLoss: number;
-	valAccuracy: number;
+	testLoss: number;
+	testAccuracy: number;
 }
 
 export interface TrainingWorkerAPI {
@@ -29,6 +29,7 @@ export interface TrainingWorkerAPI {
 	resume(): Promise<void>;
 	stop(): Promise<void>;
 	getActivations(sampleIndex: number): Promise<LayerActivation[]>;
+	getActivationsBatch(sampleIndices: number[]): Promise<LayerActivation[][]>;
 	getTestSamples(n: number): Promise<{ xs: number[][][]; ys: number[] }>;
 }
 

@@ -34,15 +34,23 @@ describe("initTFBackend", () => {
 		vi.mocked(tf.getBackend).mockReturnValue("webgl");
 
 		await expect(initTFBackend()).resolves.toBe("webgl");
-		expect(vi.mocked(tf.setBackend).mock.calls).toEqual([["webgpu"], ["webgl"]]);
+		expect(vi.mocked(tf.setBackend).mock.calls).toEqual([
+			["webgpu"],
+			["webgl"],
+		]);
 	});
 
 	it("falls back to WebGL when WebGPU readiness fails", async () => {
-		vi.mocked(tf.ready).mockRejectedValueOnce(new Error("Initialization failed"));
+		vi.mocked(tf.ready).mockRejectedValueOnce(
+			new Error("Initialization failed"),
+		);
 		vi.mocked(tf.getBackend).mockReturnValue("webgl");
 
 		await expect(initTFBackend()).resolves.toBe("webgl");
-		expect(vi.mocked(tf.setBackend).mock.calls).toEqual([["webgpu"], ["webgl"]]);
+		expect(vi.mocked(tf.setBackend).mock.calls).toEqual([
+			["webgpu"],
+			["webgl"],
+		]);
 		expect(tf.ready).toHaveBeenCalledTimes(2);
 	});
 
@@ -51,7 +59,10 @@ describe("initTFBackend", () => {
 		vi.mocked(tf.getBackend).mockReturnValue("cpu");
 
 		await expect(initTFBackend()).resolves.toBe("cpu");
-		expect(vi.mocked(tf.setBackend).mock.calls).toEqual([["webgpu"], ["webgl"]]);
+		expect(vi.mocked(tf.setBackend).mock.calls).toEqual([
+			["webgpu"],
+			["webgl"],
+		]);
 		expect(tf.ready).toHaveBeenCalledTimes(1);
 	});
 });

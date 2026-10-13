@@ -373,7 +373,7 @@ async function renderChart(
 export function LossCurveChart() {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const metricsHistory = useTrainingStore((s) => s.metricsHistory);
-	const totalEpochs = useTrainingStore((s) => s.trainingConfig.epochs);
+	const totalEpochs = useTrainingStore((s) => s.totalEpochs);
 	const overfittingMode = useUIStore((s) => s.overfittingMode);
 
 	useEffect(() => {

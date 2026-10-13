@@ -58,9 +58,7 @@ const validCnn: ShareableState = {
 	},
 };
 
-function validWith(
-	overrides: Record<string, unknown>,
-): unknown {
+function validWith(overrides: Record<string, unknown>): unknown {
 	return {
 		layers: validDense.layers,
 		inputShape: validDense.inputShape,

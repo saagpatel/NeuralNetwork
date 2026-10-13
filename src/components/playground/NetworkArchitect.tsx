@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Slider } from "@/components/ui/Slider";
 import { MAX_NETWORK_LAYERS } from "@/constants/network";
-import { PRESET_MAP, PRESETS } from "@/constants/presets";
+import { PRESETS } from "@/constants/presets";
 import { validateArchitecture } from "@/lib/architecture-validator";
 import { useArchitectureStore } from "@/stores/architecture-store";
 import { useTrainingStore } from "@/stores/training-store";
@@ -100,8 +100,7 @@ export function NetworkArchitect() {
 	const addLayer = useArchitectureStore((s) => s.addLayer);
 	const removeLayer = useArchitectureStore((s) => s.removeLayer);
 	const updateLayer = useArchitectureStore((s) => s.updateLayer);
-	const loadPreset = useArchitectureStore((s) => s.loadPreset);
-	const setInputShape = useArchitectureStore((s) => s.setInputShape);
+	const applyPreset = useArchitectureStore((s) => s.applyPreset);
 	const status = useTrainingStore((s) => s.status);
 
 	const [addMenuOpen, setAddMenuOpen] = useState(false);
@@ -162,11 +161,7 @@ export function NetworkArchitect() {
 					]}
 					onChange={(id) => {
 						if (!id) return;
-						loadPreset(id);
-						const preset = PRESET_MAP[id];
-						if (preset?.inputShape) {
-							setInputShape(preset.inputShape);
-						}
+						applyPreset(id);
 					}}
 					disabled={isTraining}
 				/>
@@ -389,9 +384,7 @@ export function NetworkArchitect() {
 					size="sm"
 					disabled={isTraining || atLayerLimit}
 					title={
-						atLayerLimit
-							? `Maximum ${MAX_NETWORK_LAYERS} layers`
-							: undefined
+						atLayerLimit ? `Maximum ${MAX_NETWORK_LAYERS} layers` : undefined
 					}
 					onClick={() => setAddMenuOpen((o) => !o)}
 					className="w-full border border-dashed border-slate-700 hover:border-slate-500 text-slate-400"

@@ -113,48 +113,6 @@ export interface LayerActivation {
 	data: Float32Array; // flattened activations
 }
 
-// === Worker Messages ===
-
-export interface WorkerStartMessage {
-	type: "start";
-	networkConfig: NetworkConfig;
-	trainingConfig: TrainingConfig;
-	datasetId: DatasetId;
-	snapshotEveryNBatches: number;
-	onUpdate: (update: TrainingUpdate) => void;
-}
-
-export interface WorkerControlMessage {
-	type: "pause" | "resume" | "stop";
-}
-
-export type WorkerInboundMessage = WorkerStartMessage | WorkerControlMessage;
-
-export interface WorkerUpdateMessage {
-	type: "update";
-	data: TrainingUpdate;
-}
-
-export interface WorkerCompleteMessage {
-	type: "complete";
-	finalMetrics: {
-		trainLoss: number;
-		trainAccuracy: number;
-		valLoss: number;
-		valAccuracy: number;
-	};
-}
-
-export interface WorkerErrorMessage {
-	type: "error";
-	error: string;
-}
-
-export type WorkerOutboundMessage =
-	| WorkerUpdateMessage
-	| WorkerCompleteMessage
-	| WorkerErrorMessage;
-
 // === Datasets ===
 
 export type DatasetId = "mnist" | "fashion-mnist" | "cifar10";
@@ -182,14 +140,6 @@ export interface NetworkLayoutNode {
 	x: number;
 	y: number;
 	activation: number; // current activation value (0-1 range, normalized)
-}
-
-export interface NetworkLayoutEdge {
-	fromLayer: number;
-	fromNeuron: number;
-	toLayer: number;
-	toNeuron: number;
-	weight: number;
 }
 
 export interface MetricsHistoryPoint {
