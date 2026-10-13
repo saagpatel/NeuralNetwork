@@ -30,25 +30,37 @@ interface TrainingWorkerAPI {
 	resume(): void;
 	stop(): void;
 	getActivations(sampleIndex: number): Promise<LayerActivation[]>;
+	getActivationsBatch(sampleIndices: number[]): Promise<LayerActivation[][]>;
 	getTestSamples(n: number): Promise<{ xs: number[][][]; ys: number[] }>;
 }
 
 interface FinalMetrics {
 	trainLoss: number;
 	trainAccuracy: number;
-	valLoss: number;
-	valAccuracy: number;
+	testLoss: number;
+	testAccuracy: number;
 }
 
 // Mutable training state — held in an object so linter won't convert to const
 const state = {
 	isPaused: false,
 	isStopped: false,
-	currentModel: null as tf.LayersModel | null,
-	testXsCache: null as tf.Tensor | null,
-	testYsCache: null as tf.Tensor | null,
-	activationModel: null as tf.LayersModel | null,
+	testImages: null as Float32Array | null,
+	testLabels: null as Uint8Array | null,
+	inputShape: null as number[] | null,
+	networkConfig: null as NetworkConfig | null,
+	trainingConfig: null as TrainingConfig | null,
+	weightSnapshots: null as ReturnType<typeof extractWeights> | null,
 };
+
+function disposeState() {
+	state.testImages = null;
+	state.testLabels = null;
+	state.inputShape = null;
+	state.networkConfig = null;
+	state.trainingConfig = null;
+	state.weightSnapshots = null;
+}
 
 const worker: TrainingWorkerAPI = {
 	async start(
@@ -61,8 +73,11 @@ const worker: TrainingWorkerAPI = {
 		onError,
 		onLoadProgress,
 	) {
+		disposeState();
 		state.isPaused = false;
 		state.isStopped = false;
+		const tensors: tf.Tensor[] = [];
+		let model: tf.LayersModel | null = null;
 
 		try {
 			await initTFBackend();
@@ -74,7 +89,7 @@ const worker: TrainingWorkerAPI = {
 
 			const { testImages, testLabels, meta } = dataset;
 			let { trainImages, trainLabels } = dataset;
-			const { inputShape, numClasses } = meta;
+			const { inputShape, numClasses } = { ...meta, inputShape: networkConfig.inputShape };
 			const pixelsPerImage = inputShape.reduce((a, b) => a * b, 1);
 
 			// Overfitting demo: slice training set if maxTrainSamples is set
@@ -90,31 +105,36 @@ const worker: TrainingWorkerAPI = {
 
 			// Convert to tensors and one-hot encode labels
 			const xs = tf.tensor2d(trainImages, [trainSize, pixelsPerImage]);
+			tensors.push(xs);
 			const xsReshaped = xs.reshape([trainSize, ...inputShape]);
+			tensors.push(xsReshaped);
 			xs.dispose();
 
 			const ysFlat = tf.tensor1d(
 				Array.from(trainLabels).map((v) => v),
 				"int32",
 			);
+			tensors.push(ysFlat);
 			const ys = tf.oneHot(ysFlat, numClasses);
+			tensors.push(ys);
 			ysFlat.dispose();
 
-			// Cache test tensors for confusion matrix and activation extraction
+			// Build temporary test tensors for confusion-matrix evaluation.
 			const testCount = testImages.length / pixelsPerImage;
-			const xsTestRaw = tf
-				.tensor2d(testImages, [testCount, pixelsPerImage])
-				.reshape([testCount, ...inputShape]);
+			const xsTestFlat = tf.tensor2d(testImages, [testCount, pixelsPerImage]);
+			tensors.push(xsTestFlat);
+			const xsTestRaw = xsTestFlat.reshape([testCount, ...inputShape]);
+			tensors.push(xsTestRaw);
+			xsTestFlat.dispose();
 			const ysTestFlatCached = tf.tensor1d(
 				Array.from(testLabels).map((v) => v),
 				"int32",
 			);
+			tensors.push(ysTestFlatCached);
 			const ysTestCached = tf.oneHot(ysTestFlatCached, numClasses);
+			tensors.push(ysTestCached);
 			ysTestFlatCached.dispose();
-			state.testXsCache = xsTestRaw;
-			state.testYsCache = ysTestCached;
-
-			const model = compileModel(networkConfig, trainingConfig);
+			model = compileModel(networkConfig, trainingConfig);
 
 			const batchesPerEpoch = Math.ceil(
 				(trainSize * (1 - trainingConfig.validationSplit)) /
@@ -125,8 +145,8 @@ const worker: TrainingWorkerAPI = {
 			let finalMetrics: FinalMetrics = {
 				trainLoss: 0,
 				trainAccuracy: 0,
-				valLoss: 0,
-				valAccuracy: 0,
+				testLoss: 0,
+				testAccuracy: 0,
 			};
 
 			// Train epoch-by-epoch so we can check pause/stop between epochs
@@ -151,7 +171,7 @@ const worker: TrainingWorkerAPI = {
 						onBatchEnd: async (batch, logs) => {
 							batchCount++;
 							if (batchCount % snapshotEveryNBatches === 0) {
-								const snapshots = extractWeights(model);
+				const snapshots = extractWeights(model!);
 								onUpdate({
 									epoch,
 									batch,
@@ -167,21 +187,18 @@ const worker: TrainingWorkerAPI = {
 							}
 						},
 						onEpochEnd: async (_epoch, logs) => {
-							const snapshots = extractWeights(model);
+							const snapshots = extractWeights(model!);
 
 							// Confusion matrix on test subset at epoch end
-							const subsetSize = Math.min(
-								1000,
-								state.testXsCache?.shape[0] ?? 0,
-							);
+							const subsetSize = Math.min(1000, testCount);
 							let confusionMatrix: number[][] | undefined;
-							if (state.testXsCache && state.testYsCache && subsetSize > 0) {
-								const numCls = state.testYsCache.shape[1] ?? numClasses;
-								const testSubX = state.testXsCache.slice([0], [subsetSize]);
-								const testSubY = state.testYsCache.slice([0], [subsetSize]);
-								const preds = model.predict(testSubX) as tf.Tensor2D;
-								const predIndices = Array.from(preds.argMax(-1).dataSync());
-								const trueIndices = Array.from(testSubY.argMax(-1).dataSync());
+							if (subsetSize > 0) {
+								const numCls = numClasses;
+								const testSubX = xsTestRaw.slice([0], [subsetSize]);
+								const testSubY = ysTestCached.slice([0], [subsetSize]);
+								const preds = model!.predict(testSubX) as tf.Tensor2D;
+								const predIndices = tf.tidy(() => Array.from(preds.argMax(-1).dataSync()));
+								const trueIndices = tf.tidy(() => Array.from(testSubY.argMax(-1).dataSync()));
 								testSubX.dispose();
 								testSubY.dispose();
 								preds.dispose();
@@ -219,56 +236,60 @@ const worker: TrainingWorkerAPI = {
 							finalMetrics = {
 								trainLoss: update.trainLoss,
 								trainAccuracy: update.trainAccuracy,
-								valLoss: update.valLoss ?? 0,
-								valAccuracy: update.valAccuracy ?? 0,
+								testLoss: 0,
+								testAccuracy: 0,
 							};
 						},
 					},
 				});
 			}
 
-			// Store trained model and build activation model
-			state.currentModel = model;
-			try {
-				state.activationModel = buildActivationModel(model);
-			} catch {
-				// Sequential models without functional graph won't support activation extraction
-				state.activationModel = null;
-			}
+			// Preserve plain arrays for post-training inspection; release TF tensors below.
+			state.testImages = testImages;
+			state.testLabels = testLabels;
+			state.inputShape = [...inputShape];
+			state.networkConfig = networkConfig;
+			state.trainingConfig = trainingConfig;
+			state.weightSnapshots = extractWeights(model);
 
 			// Run final evaluation on test set
 			if (!state.isStopped) {
 				const testCount2 = testImages.length / pixelsPerImage;
-				const xsTest = tf
-					.tensor2d(testImages, [testCount2, pixelsPerImage])
-					.reshape([testCount2, ...inputShape]);
+				const xsTestFlat = tf.tensor2d(testImages, [testCount2, pixelsPerImage]);
+				tensors.push(xsTestFlat);
+				const xsTest = xsTestFlat.reshape([testCount2, ...inputShape]);
+				tensors.push(xsTest);
+				xsTestFlat.dispose();
 				const ysTestFlat = tf.tensor1d(
 					Array.from(testLabels).map((v) => v),
 					"int32",
 				);
+				tensors.push(ysTestFlat);
 				const ysTest = tf.oneHot(ysTestFlat, numClasses);
+				tensors.push(ysTest);
 				ysTestFlat.dispose();
 
 				const evalResult = model.evaluate(xsTest, ysTest) as tf.Scalar[];
+				tensors.push(...evalResult);
 				const evalLoss = evalResult[0].dataSync()[0];
 				const evalAcc = evalResult[1].dataSync()[0];
 
-				finalMetrics.valLoss = evalLoss ?? 0;
-				finalMetrics.valAccuracy = evalAcc ?? 0;
+				finalMetrics.testLoss = evalLoss ?? 0;
+				finalMetrics.testAccuracy = evalAcc ?? 0;
 
 				xsTest.dispose();
 				ysTest.dispose();
 				evalResult.forEach((t) => t.dispose());
 			}
 
-			// Cleanup training tensors (keep test cache for post-training use)
-			xsReshaped.dispose();
-			ys.dispose();
-
+			// Tensor data for post-training inspection is kept as plain arrays.
 			onComplete(finalMetrics);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			onError(message);
+		} finally {
+			for (const tensor of tensors) tensor.dispose();
+			model?.dispose();
 		}
 	},
 
@@ -286,42 +307,80 @@ const worker: TrainingWorkerAPI = {
 	},
 
 	async getActivations(sampleIndex: number): Promise<LayerActivation[]> {
-		if (!state.activationModel || !state.testXsCache) return [];
+		return (await this.getActivationsBatch([sampleIndex]))[0] ?? [];
+	},
 
-		const sample = state.testXsCache.slice([sampleIndex], [1]);
-		const outputs = state.activationModel.predict(sample);
-		const outputList = Array.isArray(outputs) ? outputs : [outputs];
+	async getActivationsBatch(sampleIndices: number[]): Promise<LayerActivation[][]> {
+		if (
+			!state.testImages ||
+			!state.inputShape ||
+			!state.networkConfig ||
+			!state.trainingConfig ||
+			!state.weightSnapshots ||
+			sampleIndices.length === 0
+		) return [];
 
-		const result: LayerActivation[] = outputList.map((tensor, i) => {
-			const layer = state.activationModel!.layers[i + 1];
-			return {
-				layerIndex: i,
-				layerName: layer?.name ?? `layer_${i}`,
-				shape: tensor.shape.slice(1) as number[],
-				data: tensor.dataSync() as Float32Array,
-			};
-		});
-
-		sample.dispose();
-		outputList.forEach((t) => t.dispose());
-
-		return result;
+		const model = compileModel(state.networkConfig, state.trainingConfig);
+		let activationModel: tf.LayersModel | null = null;
+		let samples: tf.Tensor | null = null;
+		let outputList: tf.Tensor[] = [];
+		try {
+			const snapshotsByLayer = new Map(state.weightSnapshots.map((item) => [item.layerIndex, item]));
+			for (const [layerIndex, layer] of model.layers.entries()) {
+				const snapshot = snapshotsByLayer.get(layerIndex);
+				if (!snapshot) continue;
+				const kernel = tf.tensor(snapshot.weights, snapshot.shape);
+				const bias = tf.tensor1d(snapshot.biases);
+				try {
+					layer.setWeights([kernel, bias]);
+				} finally {
+					kernel.dispose();
+					bias.dispose();
+				}
+			}
+			activationModel = buildActivationModel(model);
+			const pixelsPerImage = state.inputShape.reduce((a, b) => a * b, 1);
+			const data = new Float32Array(sampleIndices.length * pixelsPerImage);
+			for (const [batchIndex, sampleIndex] of sampleIndices.entries()) {
+				const start = sampleIndex * pixelsPerImage;
+				data.set(state.testImages.subarray(start, start + pixelsPerImage), batchIndex * pixelsPerImage);
+			}
+			samples = tf.tensor(data, [sampleIndices.length, ...state.inputShape]);
+			const outputs = activationModel.predict(samples);
+			outputList = Array.isArray(outputs) ? outputs : [outputs];
+			const outputData = outputList.map((tensor) => tensor.dataSync() as Float32Array);
+			return sampleIndices.map((_, sampleIndex) => outputList.map((tensor, layerIndex) => {
+				const layer = model.layers[layerIndex];
+				const sampleSize = tensor.size / sampleIndices.length;
+				return {
+					layerIndex,
+					layerName: layer?.name ?? `layer_${layerIndex}`,
+					shape: tensor.shape.slice(1) as number[],
+					data: (outputData[layerIndex] ?? new Float32Array()).slice(sampleIndex * sampleSize, (sampleIndex + 1) * sampleSize),
+				};
+			}));
+		} catch (error) {
+			console.warn("Activations unavailable for this model", error);
+			return [];
+		} finally {
+			samples?.dispose();
+			outputList.forEach((tensor) => tensor.dispose());
+			activationModel?.dispose();
+			model.dispose();
+		}
 	},
 
 	async getTestSamples(n: number): Promise<{ xs: number[][][]; ys: number[] }> {
-		if (!state.testXsCache || !state.testYsCache) return { xs: [], ys: [] };
-
-		const count = Math.min(n, state.testXsCache.shape[0]);
-		const xSubset = state.testXsCache.slice([0], [count]);
-		const ySubset = state.testYsCache.slice([0], [count]);
-
-		const xData = xSubset.arraySync() as number[][][];
-		const yData = Array.from(ySubset.argMax(-1).dataSync()) as number[];
-
-		xSubset.dispose();
-		ySubset.dispose();
-
-		return { xs: xData, ys: yData };
+		if (!state.testImages || !state.testLabels || !state.inputShape) return { xs: [], ys: [] };
+		const pixelsPerImage = state.inputShape.reduce((a, b) => a * b, 1);
+		const count = Math.min(n, state.testLabels.length);
+		const samples = tf.tensor(
+			state.testImages.subarray(0, count * pixelsPerImage),
+			[count, ...state.inputShape],
+		);
+		const xs = samples.arraySync() as number[][][];
+		samples.dispose();
+		return { xs, ys: Array.from(state.testLabels.subarray(0, count)) };
 	},
 };
 

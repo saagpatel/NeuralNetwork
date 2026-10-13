@@ -1,4 +1,4 @@
-import type * as tf from "@tensorflow/tfjs";
+import * as tf from "@tensorflow/tfjs";
 import type { WeightSnapshot } from "@/types";
 
 // Layer types that never have trainable weights
@@ -17,9 +17,10 @@ const WEIGHTLESS_LAYER_TYPES = new Set([
 export function extractWeights(
 	model: tf.Sequential | tf.LayersModel,
 ): WeightSnapshot[] {
-	const snapshots: WeightSnapshot[] = [];
+	return tf.tidy(() => {
+		const snapshots: WeightSnapshot[] = [];
 
-	model.layers.forEach((layer, layerIndex) => {
+		model.layers.forEach((layer, layerIndex) => {
 		// Skip layers known to have no weights
 		if (WEIGHTLESS_LAYER_TYPES.has(layer.getClassName())) return;
 
@@ -43,7 +44,8 @@ export function extractWeights(
 			biases: new Float32Array(biases),
 			shape: kernelTensor.shape,
 		});
-	});
+		});
 
-	return snapshots;
+		return snapshots;
+	});
 }

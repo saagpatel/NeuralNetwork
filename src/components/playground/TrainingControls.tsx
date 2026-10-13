@@ -17,8 +17,8 @@ import {
 interface FinalMetrics {
 	trainLoss: number;
 	trainAccuracy: number;
-	valLoss: number;
-	valAccuracy: number;
+	testLoss: number;
+	testAccuracy: number;
 }
 
 export function TrainingControls() {
@@ -27,6 +27,7 @@ export function TrainingControls() {
 	const currentBatch = useTrainingStore((s) => s.currentBatch);
 	const totalBatches = useTrainingStore((s) => s.totalBatches);
 	const trainingConfig = useTrainingStore((s) => s.trainingConfig);
+	const errorMessage = useTrainingStore((s) => s.errorMessage);
 	const datasetId = useTrainingStore((s) => s.datasetId);
 
 	const snapshotEveryNBatches = useUIStore((s) => s.snapshotEveryNBatches);
@@ -69,13 +70,7 @@ export function TrainingControls() {
 	onCompleteRef.current = (metrics: FinalMetrics) => {
 		const store = useTrainingStore.getState();
 		store.setStatus("complete");
-		store.appendMetrics({
-			epoch: trainingConfig.epochs - 1,
-			trainLoss: metrics.trainLoss,
-			trainAccuracy: metrics.trainAccuracy,
-			valLoss: metrics.valLoss,
-			valAccuracy: metrics.valAccuracy,
-		});
+		store.setTestMetrics({ loss: metrics.testLoss, accuracy: metrics.testAccuracy });
 	};
 
 	onErrorRef.current = (msg: string) => {
@@ -97,6 +92,7 @@ export function TrainingControls() {
 			const config = overfittingMode
 				? { ...trainingConfig, maxTrainSamples: 500, epochs: 50 }
 				: trainingConfig;
+			useTrainingStore.getState().setTotalEpochs(config.epochs);
 
 			try {
 				await api.start(
@@ -166,7 +162,12 @@ export function TrainingControls() {
 	};
 
 	return (
-		<div className="flex items-center gap-4 px-4 py-2 h-14">
+		<div className="flex items-center gap-4 px-4 py-2 min-h-14">
+			{errorMessage && (
+				<p role="alert" className="text-xs text-red-400">
+					Training failed: {errorMessage}
+				</p>
+			)}
 			{/* Play/Pause */}
 			<Button
 				variant="primary"
