@@ -18,9 +18,9 @@ describe("validateCounts", () => {
 
 	it("throws a named error when a parsed split count differs", () => {
 		const meta = getDatasetMeta("cifar10");
-		expect(() => validateCounts("cifar10", meta, 50000, 50000, 10000, 10000)).toThrow(
-			DatasetCountMismatchError,
-		);
+		expect(() =>
+			validateCounts("cifar10", meta, 50000, 50000, 10000, 10000),
+		).toThrow(DatasetCountMismatchError);
 	});
 });
 

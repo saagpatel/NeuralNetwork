@@ -11,8 +11,15 @@ export interface DatasetTensors {
 }
 
 export class DatasetCountMismatchError extends Error {
-	constructor(id: DatasetId, split: "train" | "test", expected: number, actual: number) {
-		super(`${id} ${split} dataset contains ${actual} samples; expected ${expected}`);
+	constructor(
+		id: DatasetId,
+		split: "train" | "test",
+		expected: number,
+		actual: number,
+	) {
+		super(
+			`${id} ${split} dataset contains ${actual} samples; expected ${expected}`,
+		);
 		this.name = "DatasetCountMismatchError";
 	}
 }
@@ -29,7 +36,9 @@ const IDX_IMAGES_MAGIC = 0x00000803;
 const IDX_LABELS_MAGIC = 0x00000801;
 let warnedAboutCache = false;
 
-async function getCachedDataset(key: string): Promise<CachedDataset | undefined> {
+async function getCachedDataset(
+	key: string,
+): Promise<CachedDataset | undefined> {
 	try {
 		return await get<CachedDataset>(key);
 	} catch (error) {
@@ -41,12 +50,18 @@ async function getCachedDataset(key: string): Promise<CachedDataset | undefined>
 	}
 }
 
-async function cacheDataset(key: string, dataset: CachedDataset): Promise<void> {
+async function cacheDataset(
+	key: string,
+	dataset: CachedDataset,
+): Promise<void> {
 	try {
 		await set(key, dataset);
 	} catch (error) {
 		if (!warnedAboutCache) {
-			console.warn("Dataset cache unavailable; continuing without cache", error);
+			console.warn(
+				"Dataset cache unavailable; continuing without cache",
+				error,
+			);
 			warnedAboutCache = true;
 		}
 	}
@@ -204,7 +219,14 @@ export async function loadDataset(
 			testLabels: new Uint8Array(cached.testLabels),
 			meta,
 		};
-		validateCounts(id, meta, result.trainImages.length / meta.inputShape.reduce((a, b) => a * b, 1), result.trainLabels.length, result.testImages.length / meta.inputShape.reduce((a, b) => a * b, 1), result.testLabels.length);
+		validateCounts(
+			id,
+			meta,
+			result.trainImages.length / meta.inputShape.reduce((a, b) => a * b, 1),
+			result.trainLabels.length,
+			result.testImages.length / meta.inputShape.reduce((a, b) => a * b, 1),
+			result.testLabels.length,
+		);
 		return result;
 	}
 
@@ -237,14 +259,16 @@ export async function loadDataset(
 		const testBuf = await testResponse.arrayBuffer();
 
 		onProgress?.("Processing...", 0.97);
-		const { xs: trainImages, ys: trainOneHot, count: trainCount } = parseCifar10Batches(
-			trainBuf,
-			meta.numClasses,
-		);
-		const { xs: testImages, ys: testOneHot, count: testCount } = parseCifar10Batches(
-			testBuf,
-			meta.numClasses,
-		);
+		const {
+			xs: trainImages,
+			ys: trainOneHot,
+			count: trainCount,
+		} = parseCifar10Batches(trainBuf, meta.numClasses);
+		const {
+			xs: testImages,
+			ys: testOneHot,
+			count: testCount,
+		} = parseCifar10Batches(testBuf, meta.numClasses);
 		validateCounts(id, meta, trainCount, trainCount, testCount, testCount);
 
 		// Convert one-hot back to label indices for the Uint8Array API
@@ -290,7 +314,14 @@ export async function loadDataset(
 	const testImages = normalizeImages(parseIdxImages(testImagesBuf));
 	const testLabels = parseIdxLabels(testLabelsBuf);
 	const pixelsPerImage = meta.inputShape.reduce((a, b) => a * b, 1);
-	validateCounts(id, meta, trainImages.length / pixelsPerImage, trainLabels.length, testImages.length / pixelsPerImage, testLabels.length);
+	validateCounts(
+		id,
+		meta,
+		trainImages.length / pixelsPerImage,
+		trainLabels.length,
+		testImages.length / pixelsPerImage,
+		testLabels.length,
+	);
 
 	// Cache in IndexedDB (cast to ArrayBuffer — these are never SharedArrayBuffers)
 	const toCache: CachedDataset = {
@@ -317,8 +348,10 @@ export function validateCounts(
 		["train", meta.trainSize, trainImages, trainLabels],
 		["test", meta.testSize, testImages, testLabels],
 	] as const) {
-		if (images !== expected) throw new DatasetCountMismatchError(id, split, expected, images);
-		if (labels !== expected) throw new DatasetCountMismatchError(id, split, expected, labels);
+		if (images !== expected)
+			throw new DatasetCountMismatchError(id, split, expected, images);
+		if (labels !== expected)
+			throw new DatasetCountMismatchError(id, split, expected, labels);
 	}
 }
 

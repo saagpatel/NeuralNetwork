@@ -41,18 +41,28 @@ function activationColor(t: number): string {
 	return lerpColor((t - 0.5) * 2, 33, 145, 140, 253, 231, 37);
 }
 
-function neuronIndex(layer: LayerGeometry, visibleIndex: number): number | null {
+function neuronIndex(
+	layer: LayerGeometry,
+	visibleIndex: number,
+): number | null {
 	if (!("nodes" in layer)) return null;
 	if (layer.visibleCount <= 1) return 0;
 	if (layer.visibleCount >= layer.totalCount) return visibleIndex;
 	const middle = Math.floor(layer.visibleCount / 2);
 	if (visibleIndex === middle) return null;
 	const displayedCount = layer.visibleCount - 1;
-	const displayedIndex = visibleIndex < middle ? visibleIndex : visibleIndex - 1;
-	return Math.round((displayedIndex / (displayedCount - 1)) * (layer.totalCount - 1));
+	const displayedIndex =
+		visibleIndex < middle ? visibleIndex : visibleIndex - 1;
+	return Math.round(
+		(displayedIndex / (displayedCount - 1)) * (layer.totalCount - 1),
+	);
 }
 
-export function denseKernelIndex(inputIndex: number, outputIndex: number, units: number) {
+export function denseKernelIndex(
+	inputIndex: number,
+	outputIndex: number,
+	units: number,
+) {
 	return inputIndex * units + outputIndex;
 }
 

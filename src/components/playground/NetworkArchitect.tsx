@@ -384,9 +384,7 @@ export function NetworkArchitect() {
 					size="sm"
 					disabled={isTraining || atLayerLimit}
 					title={
-						atLayerLimit
-							? `Maximum ${MAX_NETWORK_LAYERS} layers`
-							: undefined
+						atLayerLimit ? `Maximum ${MAX_NETWORK_LAYERS} layers` : undefined
 					}
 					onClick={() => setAddMenuOpen((o) => !o)}
 					className="w-full border border-dashed border-slate-700 hover:border-slate-500 text-slate-400"

@@ -2,7 +2,10 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import LZString from "lz-string";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_DATASET_ID, DEFAULT_TRAINING_CONFIG } from "@/constants/defaults";
+import {
+	DEFAULT_DATASET_ID,
+	DEFAULT_TRAINING_CONFIG,
+} from "@/constants/defaults";
 import { PRESETS } from "@/constants/presets";
 import {
 	encodeState,
@@ -218,9 +221,9 @@ describe("SharedConfigHydrator", () => {
 		expect(spies.setTrainingConfig).not.toHaveBeenCalled();
 		expect(spies.reset).not.toHaveBeenCalled();
 		expect(spies.setStatus).not.toHaveBeenCalled();
-		expect(new URLSearchParams(window.location.hash.slice(1)).get("other")).toBe(
-			"keep-me",
-		);
+		expect(
+			new URLSearchParams(window.location.hash.slice(1)).get("other"),
+		).toBe("keep-me");
 	});
 
 	it("applies only the four shareable fields once under Strict Mode and preserves non-shareable state", async () => {
@@ -250,7 +253,10 @@ describe("SharedConfigHydrator", () => {
 			totalBatches: 40,
 			metricsHistory: metrics,
 			latestWeights: weights,
-			latestConfusionMatrix: [[9, 1], [2, 8]],
+			latestConfusionMatrix: [
+				[9, 1],
+				[2, 8],
+			],
 			errorMessage: "keep-error",
 			datasetLoadProgress: 0.85,
 		});
@@ -290,7 +296,9 @@ describe("SharedConfigHydrator", () => {
 		expect(spies.setLayers).toHaveBeenCalledWith(validCnn.layers);
 		expect(spies.setInputShape).toHaveBeenCalledWith(validCnn.inputShape);
 		expect(spies.setDatasetId).toHaveBeenCalledWith(validCnn.datasetId);
-		expect(spies.setTrainingConfig).toHaveBeenCalledWith(validCnn.trainingConfig);
+		expect(spies.setTrainingConfig).toHaveBeenCalledWith(
+			validCnn.trainingConfig,
+		);
 
 		expect(spies.addLayer).not.toHaveBeenCalled();
 		expect(spies.removeLayer).not.toHaveBeenCalled();
@@ -307,7 +315,9 @@ describe("SharedConfigHydrator", () => {
 		expect(spies.setDatasetLoadProgress).not.toHaveBeenCalled();
 		expect(spies.reset).not.toHaveBeenCalled();
 
-		expect(useArchitectureStore.getState().inputShape).toEqual(validCnn.inputShape);
+		expect(useArchitectureStore.getState().inputShape).toEqual(
+			validCnn.inputShape,
+		);
 		expect(useTrainingStore.getState().datasetId).toBe(validCnn.datasetId);
 		expect(useTrainingStore.getState().trainingConfig).toEqual(
 			validCnn.trainingConfig,

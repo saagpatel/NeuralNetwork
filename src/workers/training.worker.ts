@@ -89,7 +89,10 @@ const worker: TrainingWorkerAPI = {
 
 			const { testImages, testLabels, meta } = dataset;
 			let { trainImages, trainLabels } = dataset;
-			const { inputShape, numClasses } = { ...meta, inputShape: networkConfig.inputShape };
+			const { inputShape, numClasses } = {
+				...meta,
+				inputShape: networkConfig.inputShape,
+			};
 			const pixelsPerImage = inputShape.reduce((a, b) => a * b, 1);
 
 			// Overfitting demo: slice training set if maxTrainSamples is set
@@ -171,7 +174,7 @@ const worker: TrainingWorkerAPI = {
 						onBatchEnd: async (batch, logs) => {
 							batchCount++;
 							if (batchCount % snapshotEveryNBatches === 0) {
-				const snapshots = extractWeights(model!);
+								const snapshots = extractWeights(model!);
 								onUpdate({
 									epoch,
 									batch,
@@ -197,8 +200,12 @@ const worker: TrainingWorkerAPI = {
 								const testSubX = xsTestRaw.slice([0], [subsetSize]);
 								const testSubY = ysTestCached.slice([0], [subsetSize]);
 								const preds = model!.predict(testSubX) as tf.Tensor2D;
-								const predIndices = tf.tidy(() => Array.from(preds.argMax(-1).dataSync()));
-								const trueIndices = tf.tidy(() => Array.from(testSubY.argMax(-1).dataSync()));
+								const predIndices = tf.tidy(() =>
+									Array.from(preds.argMax(-1).dataSync()),
+								);
+								const trueIndices = tf.tidy(() =>
+									Array.from(testSubY.argMax(-1).dataSync()),
+								);
 								testSubX.dispose();
 								testSubY.dispose();
 								preds.dispose();
@@ -255,7 +262,10 @@ const worker: TrainingWorkerAPI = {
 			// Run final evaluation on test set
 			if (!state.isStopped) {
 				const testCount2 = testImages.length / pixelsPerImage;
-				const xsTestFlat = tf.tensor2d(testImages, [testCount2, pixelsPerImage]);
+				const xsTestFlat = tf.tensor2d(testImages, [
+					testCount2,
+					pixelsPerImage,
+				]);
 				tensors.push(xsTestFlat);
 				const xsTest = xsTestFlat.reshape([testCount2, ...inputShape]);
 				tensors.push(xsTest);
@@ -310,7 +320,9 @@ const worker: TrainingWorkerAPI = {
 		return (await this.getActivationsBatch([sampleIndex]))[0] ?? [];
 	},
 
-	async getActivationsBatch(sampleIndices: number[]): Promise<LayerActivation[][]> {
+	async getActivationsBatch(
+		sampleIndices: number[],
+	): Promise<LayerActivation[][]> {
 		if (
 			!state.testImages ||
 			!state.inputShape ||
@@ -318,14 +330,17 @@ const worker: TrainingWorkerAPI = {
 			!state.trainingConfig ||
 			!state.weightSnapshots ||
 			sampleIndices.length === 0
-		) return [];
+		)
+			return [];
 
 		const model = compileModel(state.networkConfig, state.trainingConfig);
 		let activationModel: tf.LayersModel | null = null;
 		let samples: tf.Tensor | null = null;
 		let outputList: tf.Tensor[] = [];
 		try {
-			const snapshotsByLayer = new Map(state.weightSnapshots.map((item) => [item.layerIndex, item]));
+			const snapshotsByLayer = new Map(
+				state.weightSnapshots.map((item) => [item.layerIndex, item]),
+			);
 			for (const [layerIndex, layer] of model.layers.entries()) {
 				const snapshot = snapshotsByLayer.get(layerIndex);
 				if (!snapshot) continue;
@@ -343,22 +358,32 @@ const worker: TrainingWorkerAPI = {
 			const data = new Float32Array(sampleIndices.length * pixelsPerImage);
 			for (const [batchIndex, sampleIndex] of sampleIndices.entries()) {
 				const start = sampleIndex * pixelsPerImage;
-				data.set(state.testImages.subarray(start, start + pixelsPerImage), batchIndex * pixelsPerImage);
+				data.set(
+					state.testImages.subarray(start, start + pixelsPerImage),
+					batchIndex * pixelsPerImage,
+				);
 			}
 			samples = tf.tensor(data, [sampleIndices.length, ...state.inputShape]);
 			const outputs = activationModel.predict(samples);
 			outputList = Array.isArray(outputs) ? outputs : [outputs];
-			const outputData = outputList.map((tensor) => tensor.dataSync() as Float32Array);
-			return sampleIndices.map((_, sampleIndex) => outputList.map((tensor, layerIndex) => {
-				const layer = model.layers[layerIndex];
-				const sampleSize = tensor.size / sampleIndices.length;
-				return {
-					layerIndex,
-					layerName: layer?.name ?? `layer_${layerIndex}`,
-					shape: tensor.shape.slice(1) as number[],
-					data: (outputData[layerIndex] ?? new Float32Array()).slice(sampleIndex * sampleSize, (sampleIndex + 1) * sampleSize),
-				};
-			}));
+			const outputData = outputList.map(
+				(tensor) => tensor.dataSync() as Float32Array,
+			);
+			return sampleIndices.map((_, sampleIndex) =>
+				outputList.map((tensor, layerIndex) => {
+					const layer = model.layers[layerIndex];
+					const sampleSize = tensor.size / sampleIndices.length;
+					return {
+						layerIndex,
+						layerName: layer?.name ?? `layer_${layerIndex}`,
+						shape: tensor.shape.slice(1) as number[],
+						data: (outputData[layerIndex] ?? new Float32Array()).slice(
+							sampleIndex * sampleSize,
+							(sampleIndex + 1) * sampleSize,
+						),
+					};
+				}),
+			);
 		} catch (error) {
 			console.warn("Activations unavailable for this model", error);
 			return [];
@@ -371,7 +396,8 @@ const worker: TrainingWorkerAPI = {
 	},
 
 	async getTestSamples(n: number): Promise<{ xs: number[][][]; ys: number[] }> {
-		if (!state.testImages || !state.testLabels || !state.inputShape) return { xs: [], ys: [] };
+		if (!state.testImages || !state.testLabels || !state.inputShape)
+			return { xs: [], ys: [] };
 		const pixelsPerImage = state.inputShape.reduce((a, b) => a * b, 1);
 		const count = Math.min(n, state.testLabels.length);
 		const samples = tf.tensor(

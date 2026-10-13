@@ -67,7 +67,10 @@ export const useArchitectureStore = create<ArchitectureStore>()(
 				const preset = PRESETS.find((p) => p.id === presetId);
 				if (!preset) return;
 				set(
-					{ layers: preset.layers, inputShape: preset.inputShape ?? [28, 28, 1] },
+					{
+						layers: preset.layers,
+						inputShape: preset.inputShape ?? [28, 28, 1],
+					},
 					false,
 					"applyPreset",
 				);

@@ -70,7 +70,10 @@ export function TrainingControls() {
 	onCompleteRef.current = (metrics: FinalMetrics) => {
 		const store = useTrainingStore.getState();
 		store.setStatus("complete");
-		store.setTestMetrics({ loss: metrics.testLoss, accuracy: metrics.testAccuracy });
+		store.setTestMetrics({
+			loss: metrics.testLoss,
+			accuracy: metrics.testAccuracy,
+		});
 	};
 
 	onErrorRef.current = (msg: string) => {

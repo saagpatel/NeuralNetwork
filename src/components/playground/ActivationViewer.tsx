@@ -298,18 +298,18 @@ export function ActivationViewer() {
 			if (outputAct) {
 				// Each call fetches single sample — batch fetch all preds
 				const allPreds = activationBatch.map((acts) => {
-							const out = acts[acts.length - 1];
-							if (!out) return -1;
-							let maxIdx = 0;
-							let maxVal = -Infinity;
-							for (let j = 0; j < out.data.length; j++) {
-								if ((out.data[j] ?? 0) > maxVal) {
-									maxVal = out.data[j] ?? 0;
-									maxIdx = j;
-								}
-							}
-							return maxIdx;
-						});
+					const out = acts[acts.length - 1];
+					if (!out) return -1;
+					let maxIdx = 0;
+					let maxVal = -Infinity;
+					for (let j = 0; j < out.data.length; j++) {
+						if ((out.data[j] ?? 0) > maxVal) {
+							maxVal = out.data[j] ?? 0;
+							maxIdx = j;
+						}
+					}
+					return maxIdx;
+				});
 				predsArr.push(...allPreds);
 			}
 			setSamples({

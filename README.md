@@ -41,16 +41,16 @@ Local fixture checks do not exercise real dataset downloads, GPU backends, hoste
 
 ## Tech Stack
 
-| Area | Technology |
-| --- | --- |
-| Framework | Next.js 16, static export |
-| UI | React 19, TypeScript 5 |
-| ML | TensorFlow.js 4, Web Worker, Comlink |
-| State | Zustand 5 |
-| Charts | D3.js 7 |
-| Visualization | Canvas 2D |
-| Styling | Tailwind CSS 4 |
-| Dataset cache | IndexedDB via idb-keyval |
+| Area          | Technology                           |
+| ------------- | ------------------------------------ |
+| Framework     | Next.js 16, static export            |
+| UI            | React 19, TypeScript 5               |
+| ML            | TensorFlow.js 4, Web Worker, Comlink |
+| State         | Zustand 5                            |
+| Charts        | D3.js 7                              |
+| Visualization | Canvas 2D                            |
+| Styling       | Tailwind CSS 4                       |
+| Dataset cache | IndexedDB via idb-keyval             |
 
 ## Status
 
