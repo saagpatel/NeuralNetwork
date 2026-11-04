@@ -3,13 +3,13 @@ import * as tf from "@tensorflow/tfjs";
 
 /**
  * Initializes TF.js with the best available backend.
- * Falls back: WebGPU → WebGL → WASM.
+ * Falls back: WebGPU → WebGL → TF.js default (CPU).
  * Safe to call from both main thread and Web Worker.
  *
  * @returns The name of the active backend.
  */
 export async function initTFBackend(): Promise<string> {
-	const backends: string[] = ["webgpu", "webgl", "wasm"];
+	const backends: string[] = ["webgpu", "webgl"];
 
 	for (const backend of backends) {
 		try {
@@ -18,8 +18,8 @@ export async function initTFBackend(): Promise<string> {
 			const active = tf.getBackend();
 			console.log(`TF.js backend: ${active}`);
 			return active;
-		} catch {
-			// Try next backend
+		} catch (error) {
+			console.warn(`TF.js ${backend} backend unavailable`, error);
 		}
 	}
 

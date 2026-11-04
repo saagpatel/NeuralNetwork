@@ -3,3 +3,7 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+
+overrides:
+  # GHSA-vc2v-76pw-4v95: serve 14.2.6 still pins vulnerable compression 1.8.1.
+  serve>compression: 1.8.2

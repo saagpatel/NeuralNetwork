@@ -1,17 +1,33 @@
 # Contributing
 
-## Development setup
+Thanks for your interest in contributing! Here's how to get started.
 
-1. Install dependencies: `npm install` or `pnpm install`
-2. Start dev server: `npm run dev`
-3. Run tests: `npm test`
+## Bug Reports & Feature Requests
 
-## Pull requests
+Open a [GitHub Issue](../../issues/new) with:
 
-- Open an issue first for significant changes
-- Keep PRs focused — one feature or fix per PR
-- Ensure tests pass before submitting
+- Clear description of the problem or idea
+- Steps to reproduce (for bugs)
+- Expected vs actual behavior
 
-## Code style
+## Pull Requests
 
-This project uses ESLint. Run `npm run lint` before submitting.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feat/your-feature`)
+3. Make your changes with clear commit messages
+4. Follow [README verification](README.md#verification), including focused checks and the broader checks appropriate to the change
+5. Open a PR with a description of what changed and why
+
+## Development Setup
+
+See the README for installation and setup instructions.
+
+## Code Style
+
+- Follow the existing patterns in the codebase
+- Use meaningful variable and function names
+- Add comments only where the logic isn't self-evident
+
+## Questions?
+
+Open an issue or start a discussion. Response time is typically within a few days.

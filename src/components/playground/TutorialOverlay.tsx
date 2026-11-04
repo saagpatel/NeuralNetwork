@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { PRESET_MAP } from "@/constants/presets";
 import { TUTORIALS } from "@/constants/tutorials";
 import { useArchitectureStore } from "@/stores/architecture-store";
 import { useUIStore } from "@/stores/ui-store";
@@ -14,8 +13,7 @@ export function TutorialOverlay() {
 	const setRightPanelTab = useUIStore((s) => s.setRightPanelTab);
 	const overfittingMode = useUIStore((s) => s.overfittingMode);
 	const toggleOverfittingMode = useUIStore((s) => s.toggleOverfittingMode);
-	const setLayers = useArchitectureStore((s) => s.setLayers);
-	const setInputShape = useArchitectureStore((s) => s.setInputShape);
+	const applyPreset = useArchitectureStore((s) => s.applyPreset);
 
 	const tutorial = TUTORIALS.find((t) => t.id === activeTutorialId);
 
@@ -25,13 +23,7 @@ export function TutorialOverlay() {
 		if (!step) return;
 
 		if (step.presetId) {
-			const preset = PRESET_MAP[step.presetId];
-			if (preset) {
-				setLayers(preset.layers);
-				if (preset.inputShape) {
-					setInputShape(preset.inputShape);
-				}
-			}
+			applyPreset(step.presetId);
 		}
 
 		if (step.switchTab) {

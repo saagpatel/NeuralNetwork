@@ -13,7 +13,7 @@ export const TUTORIALS: Tutorial[] = [
 			},
 			{
 				title: "Watch weights change",
-				body: "Hit Train and watch the heatmap on each connection. Blue = negative weight, red = positive. The network adjusts these to reduce loss.",
+				body: "Hit Train and watch the heatmap on each connection. Blue = positive weight, orange = negative. The network adjusts these to reduce loss.",
 			},
 			{
 				title: "Loss measures error",
