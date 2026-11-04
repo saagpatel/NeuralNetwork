@@ -38,7 +38,7 @@
 		"jsdom": "^29.1.1",
 		"postcss": "^8.5.26",
 		"prettier": "3.6.2",
-		"serve": "14.2.4",
+		"serve": "14.2.6",
 		"tailwindcss": "^4.2.2",
 		"typescript": "^5.9.3",
 		"vite": "^8.1.6",
