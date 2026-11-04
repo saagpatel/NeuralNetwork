@@ -1,4 +1,4 @@
-# Saagar portfolio — gitleaks baseline
+# Repository gitleaks baseline
 # Generated 2026-06-07 from full-history audit (gitleaks 8.30.1, 93 repos).
 # All 25 findings were confirmed false-positives: test fixtures, mock API files,
 # build artifacts, doc curl examples, and audit-output project_key strings.
@@ -11,7 +11,7 @@
 # repos that's an accepted trade; if you want stricter, pin by commit instead
 # (see the commented [[rules]]-free allowlist.commits example at the bottom).
 
-title = "Saagar portfolio gitleaks baseline (2026-06-07 audit)"
+title = "Repository gitleaks baseline (2026-06-07 audit)"
 
 [extend]
 useDefault = true

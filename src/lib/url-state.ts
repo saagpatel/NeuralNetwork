@@ -201,7 +201,10 @@ function parseTrainingConfig(
 ): TrainingConfig | null {
 	if (!isPlainObject(raw)) return null;
 	const keys = Object.keys(raw);
-	const allowed = new Set<string>([...TRAINING_REQUIRED_KEYS, "maxTrainSamples"]);
+	const allowed = new Set<string>([
+		...TRAINING_REQUIRED_KEYS,
+		"maxTrainSamples",
+	]);
 	if (!TRAINING_REQUIRED_KEYS.every((key) => keys.includes(key))) return null;
 	if (!keys.every((key) => allowed.has(key))) return null;
 

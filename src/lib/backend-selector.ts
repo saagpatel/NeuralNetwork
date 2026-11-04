@@ -18,8 +18,8 @@ export async function initTFBackend(): Promise<string> {
 			const active = tf.getBackend();
 			console.log(`TF.js backend: ${active}`);
 			return active;
-		} catch {
-			// Try next backend
+		} catch (error) {
+			console.warn(`TF.js ${backend} backend unavailable`, error);
 		}
 	}
 

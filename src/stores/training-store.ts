@@ -25,6 +25,8 @@ interface TrainingStore {
 	currentBatch: number;
 	totalBatches: number;
 	metricsHistory: MetricsHistoryPoint[];
+	testMetrics: { loss: number; accuracy: number } | null;
+	totalEpochs: number;
 	latestWeights: WeightSnapshot[];
 	latestConfusionMatrix: number[][] | null;
 	errorMessage: string | null;
@@ -37,6 +39,8 @@ interface TrainingStore {
 	appendMetrics(point: MetricsHistoryPoint): void;
 	setWeights(snapshots: WeightSnapshot[]): void;
 	setConfusionMatrix(matrix: number[][]): void;
+	setTestMetrics(metrics: { loss: number; accuracy: number }): void;
+	setTotalEpochs(epochs: number): void;
 	setDataset(id: DatasetId): void;
 	setDatasetId(datasetId: DatasetId): void;
 	setTrainingConfig(trainingConfig: TrainingConfig): void;
@@ -52,6 +56,8 @@ const INITIAL_STATE = {
 	currentBatch: 0,
 	totalBatches: 0,
 	metricsHistory: [] as MetricsHistoryPoint[],
+	testMetrics: null as { loss: number; accuracy: number } | null,
+	totalEpochs: DEFAULT_TRAINING_CONFIG.epochs,
 	latestWeights: [] as WeightSnapshot[],
 	latestConfusionMatrix: null as number[][] | null,
 	errorMessage: null,
@@ -93,6 +99,14 @@ export const useTrainingStore = create<TrainingStore>()(
 				set({ latestConfusionMatrix: matrix }, false, "setConfusionMatrix");
 			},
 
+			setTestMetrics(testMetrics) {
+				set({ testMetrics }, false, "setTestMetrics");
+			},
+
+			setTotalEpochs(totalEpochs) {
+				set({ totalEpochs }, false, "setTotalEpochs");
+			},
+
 			setDataset(id) {
 				set({ datasetId: id }, false, "setDataset");
 			},
@@ -131,6 +145,8 @@ export const useTrainingStore = create<TrainingStore>()(
 						currentBatch: 0,
 						totalBatches: 0,
 						metricsHistory: [],
+						testMetrics: null,
+						totalEpochs: DEFAULT_TRAINING_CONFIG.epochs,
 						latestWeights: [],
 						latestConfusionMatrix: null,
 						errorMessage: null,
