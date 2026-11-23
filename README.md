@@ -2,12 +2,12 @@
 
 An interactive neural-network playground that runs in the browser. Build dense and convolutional networks, train them with TensorFlow.js in a Web Worker, and inspect weights, activations, and training metrics. No application backend is required.
 
-**Live demo:** https://neural-network-playground.vercel.app
+**Live demo:** https://neural-network-playground-delta.vercel.app
 
 ## Features
 
-- Dense and convolutional network presets and custom layers
-- MNIST, Fashion-MNIST, and CIFAR-10 dataset support
+- Dense and convolutional network presets and a layer editor
+- Loaders for MNIST, Fashion-MNIST, and CIFAR-10 (see [data requirements](#known-risks))
 - Canvas network visualization and D3 training charts
 - Activation inspection, confusion matrix, guided tutorials, and shareable URLs
 - IndexedDB dataset caching
@@ -18,11 +18,11 @@ An interactive neural-network playground that runs in the browser. Build dense a
 
 - Node.js matching `.node-version`
 - pnpm 12.11.2 as pinned by `packageManager` in `package.json`
+- `make` for verification and `tar` for optional CIFAR-10 preparation
 
 ### Installation
 
 ```bash
-corepack enable
 pnpm install --frozen-lockfile
 ```
 
@@ -32,6 +32,8 @@ pnpm install --frozen-lockfile
 pnpm dev
 # Open http://localhost:3000
 ```
+
+If the dev server cannot start its file watcher, run `WATCHPACK_POLLING=1500 pnpm dev --webpack` to use polling.
 
 ## Verification
 
@@ -60,8 +62,8 @@ The app exports a static site and performs model training in the browser. Instal
 
 ### Known risks
 
-- CIFAR-10 metadata advertises a 10,000/2,000 subset while the preparation script produces 50,000/10,000; loading now reports a count mismatch until the intended dataset size is chosen.
-- The README demo URL and the canonical URL in `src/app/layout.tsx` differ; the canonical public URL still needs an owner decision.
+- The default MNIST and Fashion-MNIST downloads return 404. For local training, place the four uncompressed IDX files in `public/datasets/` and set `NEXT_PUBLIC_DATASET_BASE_URL=/datasets` before starting or building the app. Name the files with the prefix `mnist_` or `fashion_mnist_` and the suffixes `train_images`, `train_labels`, `test_images`, and `test_labels`.
+- The CIFAR-10 loader expects 10,000 training records and 2,000 test records. The preparation script writes 50,000 and 10,000 respectively, so the loader rejects its files unless you trim each split to the expected count (3,073 bytes per record).
 - Regularization controls are preserved, but L1/L2 are not currently applied to model kernels.
 - Hosted CI, branch protection, and deployment state are not established by local checks.
 
@@ -69,7 +71,7 @@ The app exports a static site and performs model training in the browser. Instal
 
 - Decide whether CIFAR-10 uses the browser subset or the full dataset.
 - Decide whether to implement or remove the regularization controls and URL fields.
-- Choose the canonical live URL, CIFAR-10 hosting approach, edge-color semantics, theme scope, and license holder.
+- Choose the CIFAR-10 hosting approach, edge-color semantics, and theme scope.
 
 ## License
 
